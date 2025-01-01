@@ -1,0 +1,10 @@
+webclient:
+  skip-headers:
+    - connection
+    - keep-alive
+    - proxy-authenticate
+    - proxy-authorization
+    - te
+    - trailer
+    - transfer-encoding
+    - upgrade
