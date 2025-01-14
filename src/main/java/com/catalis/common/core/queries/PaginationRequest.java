@@ -1,5 +1,6 @@
 package com.catalis.common.core.queries;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -7,6 +8,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.web.bind.annotation.ModelAttribute;
 
 /**
  * Represents a pagination request used for retrieving paginated results.
@@ -23,12 +25,20 @@ import org.springframework.data.domain.Sort;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@Schema(description = "Represents a pagination request for retrieving paginated results, including page number, size, sort field, and direction.")
 public class PaginationRequest {
 
+    @Schema(description = "The zero-based page number to retrieve.", example = "0", defaultValue = "0")
     private int pageNumber = 0;
+
+    @Schema(description = "The number of items per page.", example = "10", defaultValue = "10")
     private int pageSize = 10;
-    private String sortBy; // No default sort field
-    private String sortDirection = "DESC"; // Default sort direction
+
+    @Schema(description = "The field to sort the results by.", example = "name")
+    private String sortBy;
+
+    @Schema(description = "The direction of sorting, either ASC or DESC.", example = "DESC", defaultValue = "DESC")
+    private String sortDirection = "DESC";
 
     public Pageable toPageable() {
         if (sortBy == null || sortBy.isEmpty()) {
@@ -37,5 +47,4 @@ public class PaginationRequest {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDirection), sortBy);
         return PageRequest.of(pageNumber, pageSize, sort);
     }
-
 }
