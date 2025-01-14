@@ -3,6 +3,10 @@ package com.catalis.common.core.filters;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.parameters.Parameter;
+import io.swagger.v3.oas.models.media.BooleanSchema;
+import io.swagger.v3.oas.models.media.IntegerSchema;
+import io.swagger.v3.oas.models.media.NumberSchema;
+import io.swagger.v3.oas.models.media.StringSchema;
 import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.data.annotation.Id;
 import org.springframework.stereotype.Component;
@@ -11,6 +15,7 @@ import org.springframework.web.method.HandlerMethod;
 import org.springdoc.core.annotations.ParameterObject;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -30,9 +35,10 @@ import java.util.stream.Collectors;
  * 3. Extracts the DTO class used for filtering
  * 4. Adds standard pagination parameters
  * 5. Processes DTO fields to create filter parameters:
- *    - Skips ID fields (fields with @Id annotation or ending with "Id")
+ *    - Skips ID fields (fields with @Id annotation or ending with "Id") unless marked with @FilterableId
  *    - Creates basic filter parameters for regular fields
  *    - Creates range parameters (from/to) for numeric and date fields
+ *    - Handles ID fields marked with @FilterableId as basic filter parameters without range
  * 6. Combines preserved parameters with new filter parameters
  *
  * Features:
@@ -42,6 +48,7 @@ import java.util.stream.Collectors;
  * - Pagination parameter documentation
  * - Sorting parameter documentation
  * - Camel case to words conversion for readable descriptions
+ * - Support for selectively including ID fields in filters via @FilterableId annotation
  */
 @Component
 public class FilterParameterCustomizer implements OperationCustomizer {
@@ -57,8 +64,9 @@ public class FilterParameterCustomizer implements OperationCustomizer {
     @Override
     public Operation customize(Operation operation, HandlerMethod handlerMethod) {
         // Get existing parameters and preserve path parameters
-        List<Parameter> existingParameters = operation.getParameters() != null ?
-                operation.getParameters() : new ArrayList<>();
+        List<Parameter> existingParameters = operation.getParameters() != null
+                ? operation.getParameters()
+                : new ArrayList<>();
 
         // Keep path parameters and other non-query parameters
         List<Parameter> preservedParameters = existingParameters.stream()
@@ -74,8 +82,13 @@ public class FilterParameterCustomizer implements OperationCustomizer {
                 .ifPresent(param -> {
                     Class<?> dtoClass = extractDtoClass(param.getGenericParameterType());
                     if (dtoClass != null) {
+                        // Make a copy of the preserved parameters so we can add new filter params
                         List<Parameter> filterParameters = new ArrayList<>(preservedParameters);
+
+                        // Add pagination & filter params from the DTO class
                         addFilterParameters(filterParameters, dtoClass);
+
+                        // Update the operation parameters with the combined list
                         operation.setParameters(filterParameters);
                     }
                 });
@@ -99,33 +112,6 @@ public class FilterParameterCustomizer implements OperationCustomizer {
     }
 
     /**
-     * Adds all necessary filter parameters to the parameter list.
-     * This includes pagination parameters and parameters derived from the DTO fields.
-     *
-     * @param parameters The list of parameters to add to
-     * @param dtoClass The DTO class to extract fields from
-     */
-    private void addFilterParameters(List<Parameter> parameters, Class<?> dtoClass) {
-        // Add standard pagination parameters
-        parameters.add(createParameter("pageNumber", "integer", "Page number (0-based)", "0"));
-        parameters.add(createParameter("pageSize", "integer", "Number of items per page", "10"));
-        parameters.add(createParameter("sortBy", "string", "Field to sort by", null));
-        parameters.add(createParameter("sortDirection", "string", "Sort direction (ASC or DESC)", "DESC"));
-
-        // Process each field in the DTO class
-        for (Field field : dtoClass.getDeclaredFields()) {
-            if (shouldIncludeField(field) && !isIdField(field)) {
-                parameters.add(createParameterFromField(field));
-
-                if (isRangeableField(field)) {
-                    parameters.add(createRangeStartParameter(field));
-                    parameters.add(createRangeEndParameter(field));
-                }
-            }
-        }
-    }
-
-    /**
      * Determines if a field should be included in the filter parameters.
      * Excludes static, transient, and specific system fields.
      *
@@ -134,35 +120,81 @@ public class FilterParameterCustomizer implements OperationCustomizer {
      */
     private boolean shouldIncludeField(Field field) {
         int modifiers = field.getModifiers();
-        return !java.lang.reflect.Modifier.isStatic(modifiers)
-                && !java.lang.reflect.Modifier.isTransient(modifiers)
-                && !field.getName().equals("serialVersionUID");
+        return !Modifier.isStatic(modifiers)
+                && !Modifier.isTransient(modifiers)
+                && !"serialVersionUID".equals(field.getName());
     }
 
     /**
-     * Checks if a field is an ID field, either by annotation or naming convention.
-     * This is used to exclude ID fields from filtering.
+     * Checks if a field is an ID field that should be excluded from filtering.
+     * A field is considered an excludable ID field if:
+     * - It has the @Id annotation, or
+     * - Its name ends with "Id" and it doesn't have @FilterableId annotation, or
+     * - Its name is exactly "id"
+     *
+     * Fields marked with @FilterableId will not be considered as excludable ID fields,
+     * allowing them to be used as basic filter parameters.
      *
      * @param field The field to check
-     * @return true if the field is an ID field
+     * @return true if the field is an ID field that should be excluded
      */
     private boolean isIdField(Field field) {
-        return field.isAnnotationPresent(Id.class)
-                || field.getName().endsWith("Id")
-                || field.getName().equals("id");
+        return field.isAnnotationPresent(Id.class) ||
+                (field.getName().endsWith("Id") && !field.isAnnotationPresent(FilterableId.class)) ||
+                "id".equals(field.getName());
+    }
+
+    /**
+     * Adds all necessary filter parameters to the parameter list.
+     * This includes pagination parameters and parameters derived from the DTO fields.
+     * Handles three types of fields differently:
+     * 1. Regular fields: Gets normal parameter and range parameters if applicable
+     * 2. ID fields with @FilterableId: Gets only normal parameter without range
+     * 3. Other ID fields: Skipped entirely
+     *
+     * @param parameters The list of parameters to add to
+     * @param dtoClass The DTO class to extract fields from
+     */
+    private void addFilterParameters(List<Parameter> parameters, Class<?> dtoClass) {
+        // Add standard pagination parameters
+        parameters.add(createParameter("pageNumber", integerSchema(), "Page number (0-based)", "0"));
+        parameters.add(createParameter("pageSize", integerSchema(), "Number of items per page", "10"));
+        parameters.add(createParameter("sortBy", stringSchema(), "Field to sort by", null));
+        parameters.add(createParameter("sortDirection", stringSchema(), "Sort direction (ASC or DESC)", "DESC"));
+
+        // Process each field in the DTO class
+        for (Field field : dtoClass.getDeclaredFields()) {
+            if (shouldIncludeField(field)) {
+                if (!isIdField(field)) {
+                    // Regular field - add normal parameter and range if applicable
+                    parameters.add(createParameterFromField(field));
+                    if (isRangeableField(field)) {
+                        parameters.add(createRangeStartParameter(field));
+                        parameters.add(createRangeEndParameter(field));
+                    }
+                } else if (field.isAnnotationPresent(FilterableId.class)) {
+                    // ID field marked as filterable - add only the basic parameter, no range
+                    parameters.add(createParameterFromField(field));
+                }
+            }
+        }
     }
 
     /**
      * Determines if a field should support range-based filtering.
-     * Applies to numeric and date/time fields, but not to ID fields.
+     * Applies to numeric and date/time fields, but never to ID fields
+     * (even if they're marked with @FilterableId).
      *
      * @param field The field to check
      * @return true if the field should support range filtering
      */
     private boolean isRangeableField(Field field) {
-        if (isIdField(field)) {
+        // ID fields should never have range parameters, even if they're filterable
+        if (field.getName().endsWith("Id") || "id".equals(field.getName()) ||
+                field.isAnnotationPresent(Id.class)) {
             return false;
         }
+
         Class<?> type = field.getType();
         return Number.class.isAssignableFrom(type)
                 || type.equals(LocalDateTime.class)
@@ -171,15 +203,16 @@ public class FilterParameterCustomizer implements OperationCustomizer {
 
     /**
      * Creates a basic OpenAPI parameter with the specified properties.
+     * We now accept a Schema<?> directly instead of just a type string,
+     * so we can properly handle enums and other types.
      *
      * @param name Parameter name
-     * @param type Parameter type
+     * @param schema OpenAPI Schema
      * @param description Parameter description
      * @param defaultValue Default value (can be null)
      * @return Created Parameter object
      */
-    private Parameter createParameter(String name, String type, String description, String defaultValue) {
-        Schema<?> schema = new Schema<>().type(type);
+    private Parameter createParameter(String name, Schema<?> schema, String description, String defaultValue) {
         if (defaultValue != null) {
             schema.setDefault(defaultValue);
         }
@@ -193,15 +226,16 @@ public class FilterParameterCustomizer implements OperationCustomizer {
     }
 
     /**
-     * Creates a filter parameter for a specific field.
+     * Creates a filter parameter for a specific field using a schema derived from the field type.
      *
      * @param field The field to create a parameter for
      * @return Created Parameter object
      */
     private Parameter createParameterFromField(Field field) {
+        Schema<?> schema = createSchemaForType(field.getType());
         return createParameter(
                 field.getName(),
-                getOpenApiType(field.getType()),
+                schema,
                 "Filter by " + camelCaseToWords(field.getName()),
                 null
         );
@@ -216,7 +250,7 @@ public class FilterParameterCustomizer implements OperationCustomizer {
     private Parameter createRangeStartParameter(Field field) {
         return createParameter(
                 field.getName() + "From",
-                getOpenApiType(field.getType()),
+                createSchemaForType(field.getType()),
                 "Filter " + camelCaseToWords(field.getName()) + " from value",
                 null
         );
@@ -231,27 +265,83 @@ public class FilterParameterCustomizer implements OperationCustomizer {
     private Parameter createRangeEndParameter(Field field) {
         return createParameter(
                 field.getName() + "To",
-                getOpenApiType(field.getType()),
+                createSchemaForType(field.getType()),
                 "Filter " + camelCaseToWords(field.getName()) + " to value",
                 null
         );
     }
 
     /**
-     * Maps Java types to OpenAPI type strings.
+     * Creates an OpenAPI Schema object based on the Java type.
+     * - If it's an enum, we populate the schema with all possible enum values.
+     * - If it's a known primitive/wrapper/string/time type, we choose the proper schema.
+     * - Otherwise, we default to string schema.
      *
-     * @param type The Java type to map
-     * @return The corresponding OpenAPI type string
+     * @param type Java type to convert into an OpenAPI Schema
+     * @return Schema<?> representing the type
      */
-    private String getOpenApiType(Class<?> type) {
-        if (type.isEnum()) return "string";
-        if (type == String.class) return "string";
-        if (type == Integer.class || type == int.class) return "integer";
-        if (type == Long.class || type == long.class) return "integer";
-        if (type == Double.class || type == double.class) return "number";
-        if (type == Boolean.class || type == boolean.class) return "boolean";
-        if (type == LocalDateTime.class) return "string";
-        return "string";
+    private Schema<?> createSchemaForType(Class<?> type) {
+        if (type.isEnum()) {
+            // Create a string schema and add enum values
+            StringSchema enumSchema = new StringSchema();
+            Object[] constants = type.getEnumConstants();
+            for (Object constant : constants) {
+                enumSchema.addEnumItem(constant.toString());
+            }
+            return enumSchema;
+        } else if (type == String.class) {
+            return stringSchema();
+        } else if (type == Integer.class || type == int.class) {
+            return integerSchema();
+        } else if (type == Long.class || type == long.class) {
+            return integerSchema();
+        } else if (type == Double.class || type == double.class ||
+                type == Float.class || type == float.class) {
+            return numberSchema();
+        } else if (type == Boolean.class || type == boolean.class) {
+            return booleanSchema();
+        } else if (type == LocalDateTime.class) {
+            return stringSchema().format("date-time");
+        } else {
+            // For other object types, default to string schema
+            return stringSchema();
+        }
+    }
+
+    /**
+     * Helper method to create a simple StringSchema.
+     *
+     * @return A new StringSchema
+     */
+    private StringSchema stringSchema() {
+        return new StringSchema();
+    }
+
+    /**
+     * Helper method to create a simple IntegerSchema.
+     *
+     * @return A new IntegerSchema
+     */
+    private IntegerSchema integerSchema() {
+        return new IntegerSchema();
+    }
+
+    /**
+     * Helper method to create a simple NumberSchema.
+     *
+     * @return A new NumberSchema
+     */
+    private NumberSchema numberSchema() {
+        return new NumberSchema();
+    }
+
+    /**
+     * Helper method to create a simple BooleanSchema.
+     *
+     * @return A new BooleanSchema
+     */
+    private BooleanSchema booleanSchema() {
+        return new BooleanSchema();
     }
 
     /**
