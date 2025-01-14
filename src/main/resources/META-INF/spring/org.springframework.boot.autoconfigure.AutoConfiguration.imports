@@ -1,4 +1,6 @@
+com.catalis.common.core.config.R2dbcConfig
 com.catalis.common.core.config.R2dbcTransactionConfig
+com.catalis.common.core.config.SwaggerConfig
 com.catalis.common.core.config.WebFluxConfig
 com.catalis.common.core.config.WebClientConfig
 com.catalis.common.core.config.WebClientProperties
