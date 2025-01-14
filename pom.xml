@@ -36,6 +36,16 @@
             <artifactId>r2dbc-postgresql</artifactId>
         </dependency>
 
+        <!-- OpenAPI -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations</artifactId>
+        </dependency>
+
         <!-- Utils -->
         <dependency>
             <groupId>org.projectlombok</groupId>
