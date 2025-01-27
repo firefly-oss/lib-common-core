@@ -4,7 +4,5 @@ logging:
     com.catalis: DEBUG
     org.springframework:
       web: INFO
-      data.r2dbc: INFO
       boot.autoconfigure: INFO
       security: INFO
-    io.r2dbc: INFO
