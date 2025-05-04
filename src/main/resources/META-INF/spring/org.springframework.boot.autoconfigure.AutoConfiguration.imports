@@ -2,6 +2,8 @@ com.catalis.common.core.config.WebFluxConfig
 com.catalis.common.core.config.WebClientConfig
 com.catalis.common.core.config.WebClientProperties
 com.catalis.common.core.config.WebFilterConfig
+com.catalis.common.core.web.resilience.WebClientResilienceConfig
+com.catalis.common.core.web.resilience.WebClientResilienceProperties
 com.catalis.common.core.messaging.config.MessagingConfig
 com.catalis.common.core.actuator.config.ActuatorDefaultPropertiesConfig
 com.catalis.common.core.actuator.config.ActuatorConfig
