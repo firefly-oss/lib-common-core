@@ -130,4 +130,65 @@ public @interface PublishResult {
      * @return the serialization format
      */
     SerializationFormat serializationFormat() default SerializationFormat.JSON;
+
+    /**
+     * The routing key to use for RabbitMQ.
+     * <p>
+     * This value is only used for RabbitMQ publishers. If not specified, the eventType
+     * will be used as the routing key.
+     *
+     * @return the routing key
+     */
+    String routingKey() default "";
+
+    /**
+     * SpEL condition to determine whether to publish the result.
+     * <p>
+     * If specified, this expression will be evaluated to determine whether the result
+     * should be published. If the expression evaluates to false, the result will not be published.
+     * <p>
+     * The expression can reference the method's return value using the variable 'result'
+     * and method arguments using 'args[index]'.
+     * <p>
+     * Example: "result != null" or "args[0].isValid()"
+     *
+     * @return the condition expression
+     */
+    String condition() default "";
+
+    /**
+     * Whether to include standard headers in the published message.
+     * <p>
+     * Standard headers include:
+     * <ul>
+     *   <li>X-Transaction-Id: The transaction ID from the current context</li>
+     *   <li>X-Event-Type: The event type specified in the annotation</li>
+     *   <li>X-Source-Service: The name of the service publishing the event</li>
+     *   <li>X-Timestamp: The timestamp when the event was published</li>
+     * </ul>
+     *
+     * @return true if standard headers should be included
+     */
+    boolean includeHeaders() default true;
+
+    /**
+     * Custom headers to include in the published message.
+     * <p>
+     * Each header is defined using a {@link HeaderExpression} annotation, which
+     * specifies the header name and a SpEL expression to evaluate for the header value.
+     *
+     * @return array of header expressions
+     */
+    HeaderExpression[] headerExpressions() default {};
+
+    /**
+     * The name of a bean that implements {@link com.catalis.common.core.messaging.error.PublishErrorHandler}
+     * to handle errors that occur during publishing.
+     * <p>
+     * If not specified, the default error handler will be used, which logs the error
+     * and continues execution.
+     *
+     * @return the bean name of the error handler
+     */
+    String errorHandler() default "";
 }

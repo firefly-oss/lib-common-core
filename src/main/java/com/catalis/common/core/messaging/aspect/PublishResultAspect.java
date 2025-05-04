@@ -1,13 +1,17 @@
 package com.catalis.common.core.messaging.aspect;
 
 import com.catalis.common.core.config.TransactionFilter;
+import com.catalis.common.core.messaging.MessageHeaders;
+import com.catalis.common.core.messaging.annotation.HeaderExpression;
 import com.catalis.common.core.messaging.annotation.PublishResult;
 import com.catalis.common.core.messaging.config.MessagingProperties;
+import com.catalis.common.core.messaging.error.PublishErrorHandler;
 import com.catalis.common.core.messaging.publisher.EventPublisher;
 import com.catalis.common.core.messaging.publisher.EventPublisherFactory;
 import com.catalis.common.core.messaging.serialization.MessageSerializer;
 import com.catalis.common.core.messaging.serialization.SerializationFormat;
 import com.catalis.common.core.messaging.serialization.SerializerFactory;
+import org.springframework.context.ApplicationContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -65,6 +69,7 @@ public class PublishResultAspect {
     private final EventPublisherFactory publisherFactory;
     private final MessagingProperties messagingProperties;
     private final SerializerFactory serializerFactory;
+    private final ApplicationContext applicationContext;
     private final ExpressionParser expressionParser = new SpelExpressionParser();
 
     /**
@@ -246,6 +251,24 @@ public class PublishResultAspect {
         }
 
         return Mono.defer(() -> {
+            // Check if there's a condition and evaluate it
+            if (annotation.condition() != null && !annotation.condition().isEmpty()) {
+                try {
+                    StandardEvaluationContext context = new StandardEvaluationContext();
+                    context.setVariable("result", result);
+                    Expression expression = expressionParser.parseExpression(annotation.condition());
+                    Boolean shouldPublish = expression.getValue(context, Boolean.class);
+
+                    if (shouldPublish == null || !shouldPublish) {
+                        log.debug("Condition evaluated to false, skipping event publishing");
+                        return Mono.empty();
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to evaluate condition expression: {}", annotation.condition(), e);
+                    return Mono.error(e);
+                }
+            }
+
             Object payload = result;
 
             // If a custom payload expression is specified, evaluate it
@@ -309,16 +332,87 @@ public class PublishResultAspect {
             // Determine the event type
             String eventType = annotation.eventType();
 
-            // Determine whether to include the transaction ID
-            String finalTransactionId = annotation.includeTransactionId() ? transactionId : null;
+            // Determine the routing key for RabbitMQ
+            String routingKey = annotation.routingKey();
+            if (routingKey == null || routingKey.isEmpty()) {
+                routingKey = eventType; // Default to using the event type as the routing key
+            }
+
+            // Create message headers
+            MessageHeaders.Builder headersBuilder = MessageHeaders.builder();
+
+            // Add standard headers if enabled
+            if (annotation.includeHeaders()) {
+                headersBuilder.eventType(eventType)
+                    .timestamp();
+
+                // Add application name if available
+                String applicationName = messagingProperties.getApplicationName();
+                if (applicationName != null && !applicationName.isEmpty()) {
+                    headersBuilder.sourceService(applicationName);
+                }
+            }
+
+            // Add transaction ID if enabled
+            if (annotation.includeTransactionId() && transactionId != null) {
+                headersBuilder.transactionId(transactionId);
+            }
+
+            // Add custom headers if specified
+            HeaderExpression[] headerExpressions = annotation.headerExpressions();
+            if (headerExpressions != null && headerExpressions.length > 0) {
+                StandardEvaluationContext context = new StandardEvaluationContext();
+                context.setVariable("result", result);
+
+                for (HeaderExpression headerExpression : headerExpressions) {
+                    try {
+                        Expression expression = expressionParser.parseExpression(headerExpression.expression());
+                        Object headerValue = expression.getValue(context);
+                        if (headerValue != null) {
+                            headersBuilder.header(headerExpression.name(), headerValue);
+                        }
+                    } catch (Exception e) {
+                        log.error("Failed to evaluate header expression: {}", headerExpression.expression(), e);
+                        // Continue with other headers even if one fails
+                    }
+                }
+            }
+
+            // Add routing key for RabbitMQ
+            if (annotation.publisher() == PublisherType.RABBITMQ) {
+                headersBuilder.header("routing-key", routingKey);
+            }
+
+            MessageHeaders headers = headersBuilder.build();
 
             // Capture the final payload for use in the lambda
             final Object finalPayload = payload;
 
+            // Get error handler if specified
+            PublishErrorHandler errorHandler = null;
+            if (annotation.errorHandler() != null && !annotation.errorHandler().isEmpty()) {
+                try {
+                    errorHandler = applicationContext.getBean(annotation.errorHandler(), PublishErrorHandler.class);
+                } catch (Exception e) {
+                    log.warn("Error handler '{}' not found or not of type PublishErrorHandler. Using default error handling.",
+                            annotation.errorHandler());
+                }
+            }
+
+            // Store the error handler for use in the lambda
+            final PublishErrorHandler finalErrorHandler = errorHandler;
+
             // Publish the event
-            return publisher.publish(destination, eventType, finalPayload, finalTransactionId, serializer)
+            return publisher.publish(destination, eventType, finalPayload, headers.getHeaderAsString("X-Transaction-Id"), serializer)
                     .doOnSuccess(v -> log.debug("Successfully published event: destination={}, type={}", destination, eventType))
                     .onErrorResume(e -> {
+                        // Use custom error handler if available
+                        if (finalErrorHandler != null) {
+                            return finalErrorHandler.handleError(destination, eventType, finalPayload,
+                                    annotation.publisher(), e);
+                        }
+
+                        // Default error handling
                         log.error("Error publishing event: {}", e.getMessage(), e);
                         // If we're in async mode, we'll just log the error and continue
                         if (annotation.async()) {

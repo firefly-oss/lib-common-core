@@ -2,6 +2,7 @@ package com.catalis.common.core.messaging.processor;
 
 import com.catalis.common.core.messaging.annotation.EventListener;
 import com.catalis.common.core.messaging.config.MessagingProperties;
+import com.catalis.common.core.messaging.error.EventErrorHandler;
 import com.catalis.common.core.messaging.serialization.MessageSerializer;
 import com.catalis.common.core.messaging.serialization.SerializationFormat;
 import com.catalis.common.core.messaging.serialization.SerializerFactory;
@@ -154,7 +155,21 @@ public class EventListenerProcessor implements BeanPostProcessor, ApplicationCon
 
     private String getSource(EventListener annotation) {
         if (annotation.source() != null && !annotation.source().isEmpty()) {
-            return annotation.source();
+            String source = annotation.source();
+
+            // For RabbitMQ, add routing key to headers if specified
+            if (annotation.subscriber() == com.catalis.common.core.messaging.annotation.SubscriberType.RABBITMQ) {
+                String routingKey = annotation.routingKey();
+                if (routingKey == null || routingKey.isEmpty()) {
+                    routingKey = annotation.eventType(); // Default to using the event type as the routing key
+                }
+
+                // Store the routing key in a thread-local variable or add it to a map
+                // that will be used when creating the subscription
+                // This is a placeholder for the actual implementation
+            }
+
+            return source;
         }
 
         String defaultSource = switch (annotation.subscriber()) {
@@ -190,6 +205,21 @@ public class EventListenerProcessor implements BeanPostProcessor, ApplicationCon
     }
 
     private EventHandler createEventHandler(Object bean, Method method, Class<?> targetType, MessageSerializer serializer) {
+        // Get error handler if specified
+        EventListener annotation = method.getAnnotation(EventListener.class);
+        EventErrorHandler errorHandler = null;
+        if (annotation.errorHandler() != null && !annotation.errorHandler().isEmpty()) {
+            try {
+                errorHandler = applicationContext.getBean(annotation.errorHandler(), EventErrorHandler.class);
+            } catch (Exception e) {
+                log.warn("Error handler '{}' not found or not of type EventErrorHandler. Using default error handling.",
+                        annotation.errorHandler());
+            }
+        }
+
+        // Store the error handler for use in the lambda
+        final EventErrorHandler finalErrorHandler = errorHandler;
+        final com.catalis.common.core.messaging.annotation.SubscriberType subscriberType = annotation.subscriber();
         return new EventHandler() {
             @Override
             public Mono<Void> handleEvent(byte[] payload, Map<String, Object> headers, Acknowledgement acknowledgement) {
@@ -222,6 +252,15 @@ public class EventListenerProcessor implements BeanPostProcessor, ApplicationCon
                         } catch (Exception e) {
                             log.error("Failed to deserialize payload for event handler {}.{}: {}",
                                     bean.getClass().getSimpleName(), method.getName(), e.getMessage(), e);
+
+                            // Use custom error handler if available
+                            if (finalErrorHandler != null) {
+                                String source = annotation.source();
+                                String eventType = annotation.eventType();
+                                return finalErrorHandler.handleError(source, eventType, payload, headers,
+                                        subscriberType, e, acknowledgement);
+                            }
+
                             return acknowledgement != null ? acknowledgement.acknowledge() : Mono.empty();
                         }
 
@@ -229,6 +268,15 @@ public class EventListenerProcessor implements BeanPostProcessor, ApplicationCon
                     } catch (Exception e) {
                         log.error("Error handling event in {}.{}: {}",
                                 bean.getClass().getSimpleName(), method.getName(), e.getMessage(), e);
+
+                        // Use custom error handler if available
+                        if (finalErrorHandler != null) {
+                            String source = annotation.source();
+                            String eventType = annotation.eventType();
+                            return finalErrorHandler.handleError(source, eventType, payload, headers,
+                                    subscriberType, e, acknowledgement);
+                        }
+
                         return acknowledgement != null ? acknowledgement.acknowledge() : Mono.empty();
                     }
                 });
@@ -250,6 +298,15 @@ public class EventListenerProcessor implements BeanPostProcessor, ApplicationCon
                                 .onErrorResume(error -> {
                                     log.error("Error handling event in {}.{}: {}",
                                             bean.getClass().getSimpleName(), method.getName(), error.getMessage(), error);
+
+                                    // Use custom error handler if available
+                                    if (finalErrorHandler != null) {
+                                        String source = annotation.source();
+                                        String eventType = annotation.eventType();
+                                        return finalErrorHandler.handleError(source, eventType, deserializedPayload, headers,
+                                                subscriberType, error, acknowledgement);
+                                    }
+
                                     return acknowledgement != null ? acknowledgement.acknowledge() : Mono.empty();
                                 });
                     } else {
@@ -258,6 +315,15 @@ public class EventListenerProcessor implements BeanPostProcessor, ApplicationCon
                 } catch (Exception e) {
                     log.error("Error invoking method {}.{}: {}",
                             bean.getClass().getSimpleName(), method.getName(), e.getMessage(), e);
+
+                    // Use custom error handler if available
+                    if (finalErrorHandler != null) {
+                        String source = annotation.source();
+                        String eventType = annotation.eventType();
+                        return finalErrorHandler.handleError(source, eventType, deserializedPayload, headers,
+                                subscriberType, e, acknowledgement);
+                    }
+
                     return acknowledgement != null ? acknowledgement.acknowledge() : Mono.empty();
                 }
             }

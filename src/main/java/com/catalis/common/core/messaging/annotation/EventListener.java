@@ -35,14 +35,14 @@ import java.lang.annotation.Target;
  * }
  * }
  * </pre>
- * 
+ *
  * @see PublishResult
  * @see SubscriberType
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface EventListener {
-    
+
     /**
      * The source to listen to events from.
      * <p>
@@ -58,7 +58,7 @@ public @interface EventListener {
      * @return the source name
      */
     String source() default "";
-    
+
     /**
      * The type of event to listen for.
      * <p>
@@ -70,14 +70,14 @@ public @interface EventListener {
      * @return the event type
      */
     String eventType() default "";
-    
+
     /**
      * The type of subscriber to use.
      *
      * @return the subscriber type
      */
     SubscriberType subscriber() default SubscriberType.EVENT_BUS;
-    
+
     /**
      * The serialization format to use for the payload.
      * <p>
@@ -86,7 +86,7 @@ public @interface EventListener {
      * @return the serialization format
      */
     SerializationFormat serializationFormat() default SerializationFormat.JSON;
-    
+
     /**
      * The concurrency level for processing events.
      * <p>
@@ -99,7 +99,7 @@ public @interface EventListener {
      * @return the concurrency level
      */
     int concurrency() default 1;
-    
+
     /**
      * Whether to acknowledge events automatically after processing.
      * <p>
@@ -113,7 +113,7 @@ public @interface EventListener {
      * @return true if events should be acknowledged automatically
      */
     boolean autoAck() default true;
-    
+
     /**
      * The group ID for the subscriber.
      * <p>
@@ -126,7 +126,7 @@ public @interface EventListener {
      * @return the group ID
      */
     String groupId() default "";
-    
+
     /**
      * The client ID for the subscriber.
      * <p>
@@ -139,4 +139,25 @@ public @interface EventListener {
      * @return the client ID
      */
     String clientId() default "";
+
+    /**
+     * The routing key to use for RabbitMQ.
+     * <p>
+     * This value is only used for RabbitMQ subscribers. If not specified, the eventType
+     * will be used as the routing key.
+     *
+     * @return the routing key
+     */
+    String routingKey() default "";
+
+    /**
+     * The name of a bean that implements {@link com.catalis.common.core.messaging.error.EventErrorHandler}
+     * to handle errors that occur during event processing.
+     * <p>
+     * If not specified, the default error handler will be used, which logs the error
+     * and acknowledges the message (if autoAck is false).
+     *
+     * @return the bean name of the error handler
+     */
+    String errorHandler() default "";
 }
