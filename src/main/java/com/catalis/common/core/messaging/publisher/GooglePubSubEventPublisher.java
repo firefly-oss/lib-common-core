@@ -23,6 +23,12 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        prefix = "messaging",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 public class GooglePubSubEventPublisher implements EventPublisher, ConnectionAwarePublisher {
 
     private final ObjectProvider<PubSubTemplate> pubSubTemplateProvider;

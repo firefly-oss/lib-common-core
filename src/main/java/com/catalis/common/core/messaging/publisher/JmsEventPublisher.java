@@ -24,6 +24,12 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        prefix = "messaging",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 public class JmsEventPublisher implements EventPublisher, ConnectionAwarePublisher {
 
     private final ObjectProvider<JmsTemplate> jmsTemplateProvider;

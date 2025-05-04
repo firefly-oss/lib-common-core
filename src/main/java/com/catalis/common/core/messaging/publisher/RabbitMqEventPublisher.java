@@ -23,6 +23,12 @@ import java.util.HashMap;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        prefix = "messaging",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 public class RabbitMqEventPublisher implements EventPublisher, ConnectionAwarePublisher {
 
     private final ObjectProvider<RabbitTemplate> rabbitTemplateProvider;

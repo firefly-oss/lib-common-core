@@ -3,7 +3,6 @@ package com.catalis.common.core.actuator.config;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,7 +16,6 @@ import java.util.Map;
  * behavior in the application. It allows for fine-grained control over which endpoints
  * are enabled and exposed, as well as configuration for health checks and metrics.
  */
-@Configuration
 @ConfigurationProperties(prefix = "management")
 @Getter
 @Setter

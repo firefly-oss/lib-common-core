@@ -17,6 +17,12 @@ import java.util.stream.Collectors;
  * Factory for creating event subscribers based on the subscriber type.
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        prefix = "messaging",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 @RequiredArgsConstructor
 @Slf4j
 public class SubscriberFactory {

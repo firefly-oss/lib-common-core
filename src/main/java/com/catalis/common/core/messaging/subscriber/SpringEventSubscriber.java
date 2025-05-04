@@ -21,6 +21,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * although Spring events don't use external connections. The connectionId is ignored in this implementation.
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        prefix = "messaging",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 @RequiredArgsConstructor
 @Slf4j
 public class SpringEventSubscriber implements EventSubscriber, ConnectionAwareSubscriber {

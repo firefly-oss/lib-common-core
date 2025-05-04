@@ -4,14 +4,14 @@ import com.catalis.common.core.messaging.config.MessagingProperties;
 import com.catalis.common.core.messaging.handler.EventHandler;
 import com.google.cloud.spring.pubsub.core.PubSubTemplate;
 import com.google.cloud.spring.pubsub.core.subscriber.PubSubSubscriberTemplate;
-import com.google.cloud.spring.pubsub.support.BasicAcknowledgeablePubsubMessage;
-import com.google.pubsub.v1.PubsubMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.beans.factory.ObjectProvider;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -26,6 +26,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class GooglePubSubEventSubscriberTest {
 
     @Mock
@@ -49,12 +50,6 @@ public class GooglePubSubEventSubscriberTest {
     @Mock
     private EventHandler eventHandler;
 
-    @Mock
-    private BasicAcknowledgeablePubsubMessage acknowledgeablePubsubMessage;
-
-    @Mock
-    private PubsubMessage pubsubMessage;
-
     private GooglePubSubEventSubscriber subscriber;
 
     private final String source = "test-topic";
@@ -62,16 +57,11 @@ public class GooglePubSubEventSubscriberTest {
 
     @BeforeEach
     void setUp() {
-        lenient().when(pubSubTemplateProvider.getIfAvailable()).thenReturn(pubSubTemplate);
-        lenient().when(pubSubSubscriberTemplateProvider.getIfAvailable()).thenReturn(pubSubSubscriberTemplate);
-        lenient().when(messagingProperties.getGooglePubSubConfig(anyString())).thenReturn(googlePubSubConfig);
-        lenient().when(googlePubSubConfig.isEnabled()).thenReturn(true);
-        lenient().when(eventHandler.handleEvent(any(), anyMap(), any())).thenReturn(Mono.empty());
-
-        // Mock the BasicAcknowledgeablePubsubMessage
-        lenient().when(acknowledgeablePubsubMessage.getPubsubMessage()).thenReturn(pubsubMessage);
-        lenient().when(pubsubMessage.getAttributesMap()).thenReturn(Map.of("eventType", eventType));
-        lenient().when(pubsubMessage.getMessageId()).thenReturn("test-message-id");
+        when(pubSubTemplateProvider.getIfAvailable()).thenReturn(pubSubTemplate);
+        when(pubSubSubscriberTemplateProvider.getIfAvailable()).thenReturn(pubSubSubscriberTemplate);
+        when(messagingProperties.getGooglePubSubConfig(anyString())).thenReturn(googlePubSubConfig);
+        when(googlePubSubConfig.isEnabled()).thenReturn(true);
+        when(eventHandler.handleEvent(any(), anyMap(), any())).thenReturn(Mono.empty());
 
         subscriber = new TestGooglePubSubEventSubscriber(
                 pubSubTemplateProvider,
@@ -123,16 +113,12 @@ public class GooglePubSubEventSubscriberTest {
         int concurrency = 2;
         boolean autoAck = true;
 
-        // Capture the subscription consumer
-        ArgumentCaptor<Consumer<BasicAcknowledgeablePubsubMessage>> consumerCaptor = 
-            ArgumentCaptor.forClass(Consumer.class);
-
         // When
         StepVerifier.create(subscriber.subscribe(source, eventType, eventHandler, groupId, clientId, concurrency, autoAck))
                 .verifyComplete();
 
         // Then
-        verify(pubSubTemplate).subscribe(eq(groupId), consumerCaptor.capture());
+        verify(pubSubTemplate).subscribe(eq(groupId), any(Consumer.class));
 
         // Verify the subscription was registered
         TestGooglePubSubEventSubscriber testSubscriber = (TestGooglePubSubEventSubscriber) subscriber;
@@ -153,7 +139,7 @@ public class GooglePubSubEventSubscriberTest {
                 .verifyComplete();
 
         // Then
-        verify(pubSubTemplate).subscribe(eq("subscription-" + source), any());
+        verify(pubSubTemplate).subscribe(eq("subscription-" + source), any(Consumer.class));
     }
 
     @Test
@@ -170,7 +156,7 @@ public class GooglePubSubEventSubscriberTest {
                 .verifyComplete();
 
         // Then
-        verify(pubSubTemplate, never()).subscribe(anyString(), any());
+        verify(pubSubTemplate, never()).subscribe(anyString(), any(Consumer.class));
     }
 
     @Test
@@ -192,7 +178,7 @@ public class GooglePubSubEventSubscriberTest {
                 .verifyComplete();
 
         // Then
-        verify(pubSubTemplate, never()).subscribe(anyString(), any());
+        verify(pubSubTemplate, never()).subscribe(anyString(), any(Consumer.class));
     }
 
     @Test
@@ -233,9 +219,9 @@ public class GooglePubSubEventSubscriberTest {
     void shouldBeAvailableWhenPubSubTemplateIsAvailable() {
         // Given
         // No need to stub pubSubTemplateProvider.getIfAvailable() as it's already set up in setUp()
-        lenient().when(pubSubSubscriberTemplateProvider.getIfAvailable()).thenReturn(null);
-        lenient().when(messagingProperties.getGooglePubSubConfig(anyString())).thenReturn(googlePubSubConfig);
-        lenient().when(googlePubSubConfig.isEnabled()).thenReturn(true);
+        when(pubSubSubscriberTemplateProvider.getIfAvailable()).thenReturn(null);
+        when(messagingProperties.getGooglePubSubConfig(anyString())).thenReturn(googlePubSubConfig);
+        when(googlePubSubConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();
@@ -266,8 +252,8 @@ public class GooglePubSubEventSubscriberTest {
         when(pubSubSubscriberTemplateProvider.getIfAvailable()).thenReturn(null);
         // These mocks are not used in this test because the method returns early
         // when both template providers return null
-        // lenient().when(messagingProperties.getGooglePubSubConfig(anyString())).thenReturn(googlePubSubConfig);
-        // lenient().when(googlePubSubConfig.isEnabled()).thenReturn(true);
+        // when(messagingProperties.getGooglePubSubConfig(anyString())).thenReturn(googlePubSubConfig);
+        // when(googlePubSubConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();

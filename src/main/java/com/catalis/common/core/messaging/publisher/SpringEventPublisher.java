@@ -17,6 +17,12 @@ import reactor.core.publisher.Mono;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        prefix = "messaging",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 public class SpringEventPublisher implements EventPublisher, ConnectionAwarePublisher {
 
     private final ApplicationEventPublisher applicationEventPublisher;

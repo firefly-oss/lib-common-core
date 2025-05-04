@@ -3,7 +3,6 @@ package com.catalis.common.core.web.resilience;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 
 /**
  * Configuration properties for WebClient resilience patterns.
@@ -16,7 +15,6 @@ import org.springframework.context.annotation.Configuration;
  *   <li><strong>Bulkhead:</strong> Limits the number of concurrent calls to a service</li>
  * </ul>
  */
-@Configuration
 @ConfigurationProperties(prefix = "webclient.resilience")
 @Getter
 @Setter

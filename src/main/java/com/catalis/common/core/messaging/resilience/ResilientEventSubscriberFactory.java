@@ -7,20 +7,37 @@ import io.github.resilience4j.retry.RetryRegistry;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 /**
  * Factory for creating resilient event subscribers.
  */
 @Component
-@RequiredArgsConstructor
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        prefix = "messaging",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 public class ResilientEventSubscriberFactory {
-    
+
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final RetryRegistry retryRegistry;
     private final ObjectProvider<MeterRegistry> meterRegistryProvider;
     private final MessagingProperties messagingProperties;
-    
+
+    public ResilientEventSubscriberFactory(
+            @Qualifier("messagingCircuitBreakerRegistry") CircuitBreakerRegistry circuitBreakerRegistry,
+            @Qualifier("messagingRetryRegistry") RetryRegistry retryRegistry,
+            ObjectProvider<MeterRegistry> meterRegistryProvider,
+            MessagingProperties messagingProperties) {
+        this.circuitBreakerRegistry = circuitBreakerRegistry;
+        this.retryRegistry = retryRegistry;
+        this.meterRegistryProvider = meterRegistryProvider;
+        this.messagingProperties = messagingProperties;
+    }
+
     /**
      * Creates a resilient event subscriber that wraps the given subscriber.
      *
@@ -39,7 +56,7 @@ public class ResilientEventSubscriberFactory {
                     subscriberName
             );
         }
-        
+
         return subscriber;
     }
 }

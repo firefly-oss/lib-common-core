@@ -44,6 +44,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * appropriate configuration in {@link MessagingProperties}.
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        prefix = "messaging",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 @RequiredArgsConstructor
 @Slf4j
 public class KinesisEventSubscriber implements EventSubscriber, ConnectionAwareSubscriber {

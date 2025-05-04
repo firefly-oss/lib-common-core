@@ -37,6 +37,12 @@ import java.util.concurrent.CompletableFuture;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        prefix = "messaging",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 public class KinesisEventPublisher implements EventPublisher, ConnectionAwarePublisher {
 
     private final ObjectProvider<KinesisAsyncClient> kinesisClientProvider;

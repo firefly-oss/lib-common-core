@@ -11,6 +11,12 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
  * AspectJ auto-proxy for AOP support.
  */
 @Configuration
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        prefix = "messaging",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 @ComponentScan("com.catalis.common.core.messaging")
 @EnableAspectJAutoProxy
 public class MessagingConfig {

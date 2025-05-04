@@ -28,6 +28,12 @@ import java.nio.charset.StandardCharsets;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        prefix = "messaging",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 public class AzureServiceBusEventPublisher implements EventPublisher, ConnectionAwarePublisher {
 
     private final ObjectProvider<ServiceBusClientBuilder> clientBuilderProvider;

@@ -45,6 +45,12 @@ import java.util.stream.Collectors;
  * @see com.catalis.common.core.messaging.resilience.ResilientEventPublisherFactory
  */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        prefix = "messaging",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 @RequiredArgsConstructor
 @Slf4j
 public class EventPublisherFactory {

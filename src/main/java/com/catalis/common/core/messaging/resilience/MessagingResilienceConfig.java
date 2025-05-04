@@ -13,8 +13,14 @@ import java.time.Duration;
  * Configuration for resilience patterns in messaging.
  */
 @Configuration
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        prefix = "messaging",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 public class MessagingResilienceConfig {
-    
+
     /**
      * Creates a CircuitBreakerRegistry for messaging operations.
      *
@@ -28,10 +34,10 @@ public class MessagingResilienceConfig {
                 .permittedNumberOfCallsInHalfOpenState(5)
                 .slidingWindowSize(10)
                 .build();
-        
+
         return CircuitBreakerRegistry.of(circuitBreakerConfig);
     }
-    
+
     /**
      * Creates a RetryRegistry for messaging operations.
      *
@@ -44,7 +50,7 @@ public class MessagingResilienceConfig {
                 .waitDuration(Duration.ofMillis(500))
                 .retryExceptions(Exception.class)
                 .build();
-        
+
         return RetryRegistry.of(retryConfig);
     }
 }

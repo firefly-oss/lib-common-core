@@ -23,6 +23,12 @@ import reactor.core.publisher.Mono;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        prefix = "messaging",
+        name = "enabled",
+        havingValue = "true",
+        matchIfMissing = false
+)
 public class KafkaEventPublisher implements EventPublisher, ConnectionAwarePublisher {
 
     private final ObjectProvider<KafkaTemplate<String, Object>> kafkaTemplateProvider;
