@@ -4,11 +4,14 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.cloud.context.config.annotation.RefreshScope;
-import org.springframework.cloud.context.properties.ConfigurationPropertiesRebinder;
+import org.springframework.cloud.context.refresh.ContextRefresher;
+import org.springframework.cloud.context.refresh.LegacyContextRefresher;
+import org.springframework.cloud.context.scope.refresh.RefreshScope;
 import org.springframework.cloud.context.scope.refresh.RefreshScopeRefreshedEvent;
 import org.springframework.cloud.endpoint.RefreshEndpoint;
+import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration.RefreshProperties;
 import org.springframework.context.ApplicationListener;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -33,28 +36,75 @@ public class CloudConfigAutoConfiguration {
 
     private final CloudConfigProperties properties;
     private final Environment environment;
+    private final ConfigurableApplicationContext applicationContext;
 
-    public CloudConfigAutoConfiguration(CloudConfigProperties properties, Environment environment) {
+    public CloudConfigAutoConfiguration(CloudConfigProperties properties, Environment environment, ConfigurableApplicationContext applicationContext) {
         this.properties = properties;
         this.environment = environment;
+        this.applicationContext = applicationContext;
         log.info("Initializing Spring Cloud Config client with URI: {}", properties.getUri());
     }
 
     /**
-     * Configures the refresh endpoint for dynamic configuration updates.
-     * This endpoint allows for refreshing configuration at runtime without
-     * restarting the application.
+     * Creates a RefreshScope for refreshing beans when configuration changes.
      *
+     * @return the refresh scope bean
+     */
+    @Bean
+    @ConditionalOnClass(name = "org.springframework.cloud.context.scope.refresh.RefreshScope")
+    @ConditionalOnProperty(prefix = "cloud.config", name = "refresh-enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnMissingBean
+    public RefreshScope refreshScope() {
+        log.info("Creating refresh scope");
+        return new RefreshScope();
+    }
+
+    /**
+     * Creates a RefreshProperties for configuring refresh behavior.
+     *
+     * @return the refresh properties bean
+     */
+    @Bean
+    @ConditionalOnClass(name = "org.springframework.cloud.autoconfigure.RefreshAutoConfiguration$RefreshProperties")
+    @ConditionalOnProperty(prefix = "cloud.config", name = "refresh-enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnMissingBean
+    public RefreshProperties refreshProperties() {
+        log.info("Creating refresh properties");
+        return new RefreshProperties();
+    }
+
+    /**
+     * Creates a ContextRefresher for refreshing the application context.
+     *
+     * @param refreshScope the refresh scope
+     * @param refreshProperties the refresh properties
+     * @return the context refresher bean
+     */
+    @Bean
+    @ConditionalOnClass(name = "org.springframework.cloud.context.refresh.ContextRefresher")
+    @ConditionalOnProperty(prefix = "cloud.config", name = "refresh-enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnMissingBean
+    public ContextRefresher contextRefresher(RefreshScope refreshScope, RefreshProperties refreshProperties) {
+        log.info("Creating context refresher");
+        return new LegacyContextRefresher(applicationContext, refreshScope, refreshProperties);
+    }
+
+    /**
+     * Creates a RefreshEndpoint for refreshing the application context.
+     *
+     * @param contextRefresher the context refresher
      * @return the refresh endpoint bean
      */
     @Bean
-    @ConditionalOnClass(RefreshEndpoint.class)
+    @ConditionalOnClass(name = "org.springframework.cloud.endpoint.RefreshEndpoint")
     @ConditionalOnProperty(prefix = "cloud.config", name = "refresh-enabled", havingValue = "true", matchIfMissing = true)
     @ConditionalOnMissingBean
-    public RefreshEndpoint refreshEndpoint(ConfigurationPropertiesRebinder rebinder) {
+    public RefreshEndpoint refreshEndpoint(ContextRefresher contextRefresher) {
         log.info("Enabling configuration refresh endpoint");
-        return new RefreshEndpoint(rebinder);
+        return new RefreshEndpoint(contextRefresher);
     }
+
+
 
     /**
      * Listener for refresh events to log when configuration has been refreshed.
@@ -74,7 +124,7 @@ public class CloudConfigAutoConfiguration {
      * @return a refreshable configuration bean
      */
     @Bean
-    @RefreshScope
+    @org.springframework.cloud.context.config.annotation.RefreshScope
     @ConditionalOnMissingBean(name = "refreshableConfig")
     public RefreshableConfig refreshableConfig() {
         return new RefreshableConfig(environment);
