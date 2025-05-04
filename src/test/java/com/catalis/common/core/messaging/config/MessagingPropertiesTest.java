@@ -10,6 +10,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(classes = MessagingPropertiesTest.TestConfiguration.class)
 @TestPropertySource(properties = {
+        "spring.cloud.config.enabled=false",
+        "spring.cloud.config.import-check.enabled=false",
+        "spring.config.import=optional:configserver:",
         "messaging.enabled=true",
         "messaging.resilience=true",
         "messaging.publish-timeout-seconds=10",
