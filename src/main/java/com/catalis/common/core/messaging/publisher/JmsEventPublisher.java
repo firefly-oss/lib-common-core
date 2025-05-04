@@ -16,15 +16,21 @@ import java.util.Map;
 
 /**
  * Implementation of {@link EventPublisher} that publishes events to JMS (ActiveMQ).
+ * <p>
+ * This implementation supports multiple JMS connections through the {@link ConnectionAwarePublisher}
+ * interface. Each connection is identified by a connection ID, which is used to look up the
+ * appropriate configuration in {@link MessagingProperties}.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class JmsEventPublisher implements EventPublisher {
+public class JmsEventPublisher implements EventPublisher, ConnectionAwarePublisher {
 
     private final ObjectProvider<JmsTemplate> jmsTemplateProvider;
     private final MessagingProperties messagingProperties;
     private final ObjectMapper objectMapper;
+
+    private String connectionId = "default";
 
     @Override
     public Mono<Void> publish(String destination, String eventType, Object payload, String transactionId) {
@@ -35,15 +41,18 @@ public class JmsEventPublisher implements EventPublisher {
                 return Mono.error(new IllegalStateException("JmsTemplate is not available"));
             }
 
+            // Get the JMS configuration for this connection ID
+            MessagingProperties.JmsConfig jmsConfig = messagingProperties.getJmsConfig(connectionId);
+
             // Use default destination if not specified
-            String jmsDestination = destination.isEmpty() ? 
-                    messagingProperties.getJms().getDefaultDestination() : destination;
+            String jmsDestination = destination.isEmpty() ?
+                    jmsConfig.getDefaultDestination() : destination;
 
             if (jmsDestination == null || jmsDestination.isEmpty()) {
                 return Mono.error(new IllegalArgumentException("Destination cannot be null or empty"));
             }
 
-            log.debug("Publishing event to JMS: destination={}, type={}, transactionId={}", 
+            log.debug("Publishing event to JMS: destination={}, type={}, transactionId={}",
                     jmsDestination, eventType, transactionId);
 
             try {
@@ -80,6 +89,17 @@ public class JmsEventPublisher implements EventPublisher {
 
     @Override
     public boolean isAvailable() {
-        return jmsTemplateProvider.getIfAvailable() != null;
+        return jmsTemplateProvider.getIfAvailable() != null &&
+               messagingProperties.getJmsConfig(connectionId).isEnabled();
+    }
+
+    @Override
+    public void setConnectionId(String connectionId) {
+        this.connectionId = connectionId;
+    }
+
+    @Override
+    public String getConnectionId() {
+        return connectionId;
     }
 }

@@ -14,15 +14,21 @@ import reactor.core.publisher.Mono;
 
 /**
  * Implementation of {@link EventPublisher} that publishes events to Amazon SQS.
+ * <p>
+ * This implementation supports multiple SQS connections through the {@link ConnectionAwarePublisher}
+ * interface. Each connection is identified by a connection ID, which is used to look up the
+ * appropriate configuration in {@link MessagingProperties}.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class SqsEventPublisher implements EventPublisher {
+public class SqsEventPublisher implements EventPublisher, ConnectionAwarePublisher {
 
     private final ObjectProvider<SqsTemplate> sqsTemplateProvider;
     private final ObjectProvider<SqsAsyncClient> sqsAsyncClientProvider;
     private final MessagingProperties messagingProperties;
+
+    private String connectionId = "default";
 
     @Override
     public Mono<Void> publish(String destination, String eventType, Object payload, String transactionId) {
@@ -33,9 +39,12 @@ public class SqsEventPublisher implements EventPublisher {
                 return Mono.empty();
             }
 
+            // Get the SQS configuration for this connection ID
+            MessagingProperties.SqsConfig sqsConfig = messagingProperties.getSqsConfig(connectionId);
+
             // Use default queue if not specified
             String queueName = (destination == null || destination.isEmpty()) ?
-                    messagingProperties.getSqs().getDefaultQueue() : destination;
+                    sqsConfig.getDefaultQueue() : destination;
 
             if (queueName == null || queueName.isEmpty()) {
                 return Mono.error(new IllegalArgumentException("Queue name cannot be null or empty"));
@@ -84,9 +93,12 @@ public class SqsEventPublisher implements EventPublisher {
                 return Mono.empty();
             }
 
+            // Get the SQS configuration for this connection ID
+            MessagingProperties.SqsConfig sqsConfig = messagingProperties.getSqsConfig(connectionId);
+
             // Use default queue if not specified
             String queueName = (destination == null || destination.isEmpty()) ?
-                    messagingProperties.getSqs().getDefaultQueue() : destination;
+                    sqsConfig.getDefaultQueue() : destination;
 
             if (queueName == null || queueName.isEmpty()) {
                 return Mono.error(new IllegalArgumentException("Queue name cannot be null or empty"));
@@ -133,6 +145,17 @@ public class SqsEventPublisher implements EventPublisher {
     public boolean isAvailable() {
         Object sqsTemplate = sqsTemplateProvider.getIfAvailable();
         Object sqsAsyncClient = sqsAsyncClientProvider.getIfAvailable();
-        return sqsTemplate != null && sqsAsyncClient != null;
+        return sqsTemplate != null && sqsAsyncClient != null &&
+               messagingProperties.getSqsConfig(connectionId).isEnabled();
+    }
+
+    @Override
+    public void setConnectionId(String connectionId) {
+        this.connectionId = connectionId;
+    }
+
+    @Override
+    public String getConnectionId() {
+        return connectionId;
     }
 }

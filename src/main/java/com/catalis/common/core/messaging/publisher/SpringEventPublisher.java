@@ -9,30 +9,46 @@ import reactor.core.publisher.Mono;
 
 /**
  * Implementation of {@link EventPublisher} that uses Spring's ApplicationEventPublisher.
+ * <p>
+ * This implementation supports the {@link ConnectionAwarePublisher} interface for consistency,
+ * but since Spring's ApplicationEventPublisher is internal to the application, the connection ID
+ * is not used for any configuration lookup.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class SpringEventPublisher implements EventPublisher {
-    
+public class SpringEventPublisher implements EventPublisher, ConnectionAwarePublisher {
+
     private final ApplicationEventPublisher applicationEventPublisher;
-    
+
+    private String connectionId = "default";
+
     @Override
     public Mono<Void> publish(String destination, String eventType, Object payload, String transactionId) {
         return Mono.fromRunnable(() -> {
             log.debug("Publishing event to Spring Event Bus: type={}, transactionId={}", eventType, transactionId);
             GenericApplicationEvent event = new GenericApplicationEvent(
-                    payload, 
-                    eventType, 
-                    destination, 
+                    payload,
+                    eventType,
+                    destination,
                     transactionId
             );
             applicationEventPublisher.publishEvent(event);
         });
     }
-    
+
     @Override
     public boolean isAvailable() {
         return true; // Spring Event Bus is always available
+    }
+
+    @Override
+    public void setConnectionId(String connectionId) {
+        this.connectionId = connectionId;
+    }
+
+    @Override
+    public String getConnectionId() {
+        return connectionId;
     }
 }

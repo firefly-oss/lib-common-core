@@ -15,14 +15,20 @@ import java.util.HashMap;
 
 /**
  * Implementation of {@link EventPublisher} that publishes events to RabbitMQ.
+ * <p>
+ * This implementation supports multiple RabbitMQ connections through the {@link ConnectionAwarePublisher}
+ * interface. Each connection is identified by a connection ID, which is used to look up the
+ * appropriate configuration in {@link MessagingProperties}.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class RabbitMqEventPublisher implements EventPublisher {
+public class RabbitMqEventPublisher implements EventPublisher, ConnectionAwarePublisher {
 
     private final ObjectProvider<RabbitTemplate> rabbitTemplateProvider;
     private final MessagingProperties messagingProperties;
+
+    private String connectionId = "default";
 
     @Override
     public Mono<Void> publish(String destination, String eventType, Object payload, String transactionId) {
@@ -47,12 +53,15 @@ public class RabbitMqEventPublisher implements EventPublisher {
                     properties.setHeader("transactionId", transactionId);
                 }
 
+                // Get the RabbitMQ configuration for this connection ID
+                MessagingProperties.RabbitMqConfig rabbitConfig = messagingProperties.getRabbitMqConfig(connectionId);
+
                 // Use default exchange if not specified
                 String exchange = (destination == null || destination.isEmpty()) ?
-                        messagingProperties.getRabbitmq().getDefaultExchange() : destination;
+                        rabbitConfig.getDefaultExchange() : destination;
 
                 String routingKey = (eventType == null || eventType.isEmpty()) ?
-                        messagingProperties.getRabbitmq().getDefaultRoutingKey() : eventType;
+                        rabbitConfig.getDefaultRoutingKey() : eventType;
 
                 // Use a safer approach with try-catch
                 rabbitTemplate.convertAndSend(exchange, routingKey, payload != null ? payload : "", message -> {
@@ -101,12 +110,15 @@ public class RabbitMqEventPublisher implements EventPublisher {
                     properties.setHeader("transactionId", transactionId);
                 }
 
+                // Get the RabbitMQ configuration for this connection ID
+                MessagingProperties.RabbitMqConfig rabbitConfig = messagingProperties.getRabbitMqConfig(connectionId);
+
                 // Use default exchange if not specified
                 String exchange = (destination == null || destination.isEmpty()) ?
-                        messagingProperties.getRabbitmq().getDefaultExchange() : destination;
+                        rabbitConfig.getDefaultExchange() : destination;
 
                 String routingKey = (eventType == null || eventType.isEmpty()) ?
-                        messagingProperties.getRabbitmq().getDefaultRoutingKey() : eventType;
+                        rabbitConfig.getDefaultRoutingKey() : eventType;
 
                 // Create a message with the serialized payload
                 org.springframework.amqp.core.Message message =
@@ -130,6 +142,17 @@ public class RabbitMqEventPublisher implements EventPublisher {
 
     @Override
     public boolean isAvailable() {
-        return rabbitTemplateProvider.getIfAvailable() != null;
+        return rabbitTemplateProvider.getIfAvailable() != null &&
+               messagingProperties.getRabbitMqConfig(connectionId).isEnabled();
+    }
+
+    @Override
+    public void setConnectionId(String connectionId) {
+        this.connectionId = connectionId;
+    }
+
+    @Override
+    public String getConnectionId() {
+        return connectionId;
     }
 }

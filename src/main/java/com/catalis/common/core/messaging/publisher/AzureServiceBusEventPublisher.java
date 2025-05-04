@@ -20,15 +20,21 @@ import java.nio.charset.StandardCharsets;
 /**
  * Implementation of {@link EventPublisher} that publishes events directly
  * via Azure Service Bus Async Client.
+ * <p>
+ * This implementation supports multiple Azure Service Bus connections through the {@link ConnectionAwarePublisher}
+ * interface. Each connection is identified by a connection ID, which is used to look up the
+ * appropriate configuration in {@link MessagingProperties}.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class AzureServiceBusEventPublisher implements EventPublisher {
+public class AzureServiceBusEventPublisher implements EventPublisher, ConnectionAwarePublisher {
 
     private final ObjectProvider<ServiceBusClientBuilder> clientBuilderProvider;
     private final MessagingProperties messagingProperties;
     private final ObjectMapper objectMapper;
+
+    private String connectionId = "default";
 
     /**
      * Publish an event with default JSON serialization.
@@ -77,7 +83,18 @@ public class AzureServiceBusEventPublisher implements EventPublisher {
      */
     @Override
     public boolean isAvailable() {
-        return clientBuilderProvider.getIfAvailable() != null;
+        return clientBuilderProvider.getIfAvailable() != null &&
+               messagingProperties.getAzureServiceBusConfig(connectionId).isEnabled();
+    }
+
+    @Override
+    public void setConnectionId(String connectionId) {
+        this.connectionId = connectionId;
+    }
+
+    @Override
+    public String getConnectionId() {
+        return connectionId;
     }
 
     /**
@@ -132,11 +149,14 @@ public class AzureServiceBusEventPublisher implements EventPublisher {
         if (StringUtils.hasText(destination)) {
             return destination;
         }
-        String defaultTopic = messagingProperties.getAzureServiceBus().getDefaultTopic();
+        // Get the Azure Service Bus configuration for this connection ID
+        MessagingProperties.AzureServiceBusConfig azureConfig = messagingProperties.getAzureServiceBusConfig(connectionId);
+
+        String defaultTopic = azureConfig.getDefaultTopic();
         if (StringUtils.hasText(defaultTopic)) {
             return defaultTopic;
         }
-        return messagingProperties.getAzureServiceBus().getDefaultQueue();
+        return azureConfig.getDefaultQueue();
     }
 
     /**
