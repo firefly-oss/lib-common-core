@@ -19,16 +19,22 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Implementation of {@link EventSubscriber} that uses RabbitMQ for event handling.
+ * <p>
+ * This implementation supports multiple RabbitMQ connections through the {@link ConnectionAwareSubscriber}
+ * interface. Each connection is identified by a connection ID, which is used to look up the
+ * appropriate configuration in {@link MessagingProperties}.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class RabbitMqEventSubscriber implements EventSubscriber {
+public class RabbitMqEventSubscriber implements EventSubscriber, ConnectionAwareSubscriber {
 
     private final ObjectProvider<ConnectionFactory> connectionFactoryProvider;
     private final ObjectProvider<RabbitAdmin> rabbitAdminProvider;
     private final MessagingProperties messagingProperties;
     private final Map<String, MessageListenerContainer> containers = new ConcurrentHashMap<>();
+
+    private String connectionId = "default";
 
     @Override
     public Mono<Void> subscribe(
@@ -60,11 +66,14 @@ public class RabbitMqEventSubscriber implements EventSubscriber {
             }
 
             try {
+                // Get the RabbitMQ configuration for this connection ID
+                MessagingProperties.RabbitMqConfig rabbitConfig = messagingProperties.getRabbitMqConfig(connectionId);
+
                 // Declare exchange if it doesn't exist
                 Exchange exchange = new TopicExchange(
                         source,
-                        messagingProperties.getRabbitmq().isDurable(),
-                        messagingProperties.getRabbitmq().isAutoDelete()
+                        rabbitConfig.isDurable(),
+                        rabbitConfig.isAutoDelete()
                 );
                 rabbitAdmin.declareExchange(exchange);
 
@@ -72,15 +81,15 @@ public class RabbitMqEventSubscriber implements EventSubscriber {
                 String queueName = source + ".queue";
                 Queue queue = new Queue(
                         queueName,
-                        messagingProperties.getRabbitmq().isDurable(),
-                        messagingProperties.getRabbitmq().isExclusive(),
-                        messagingProperties.getRabbitmq().isAutoDelete()
+                        rabbitConfig.isDurable(),
+                        rabbitConfig.isExclusive(),
+                        rabbitConfig.isAutoDelete()
                 );
                 rabbitAdmin.declareQueue(queue);
 
                 // Bind the queue to the exchange with the routing key
                 String routingKey = eventType.isEmpty() ?
-                        messagingProperties.getRabbitmq().getDefaultRoutingKey() : eventType;
+                        rabbitConfig.getDefaultRoutingKey() : eventType;
                 Binding binding = BindingBuilder.bind(queue)
                         .to((TopicExchange) exchange)
                         .with(routingKey);
@@ -91,7 +100,7 @@ public class RabbitMqEventSubscriber implements EventSubscriber {
                 container.setConnectionFactory(connectionFactory);
                 container.setQueueNames(queueName);
                 container.setConcurrentConsumers(concurrency);
-                container.setPrefetchCount(messagingProperties.getRabbitmq().getPrefetchCount());
+                container.setPrefetchCount(messagingProperties.getRabbitMqConfig(connectionId).getPrefetchCount());
                 container.setAcknowledgeMode(autoAck ?
                         AcknowledgeMode.AUTO : AcknowledgeMode.MANUAL);
 
@@ -158,7 +167,18 @@ public class RabbitMqEventSubscriber implements EventSubscriber {
     @Override
     public boolean isAvailable() {
         return connectionFactoryProvider.getIfAvailable() != null &&
-               rabbitAdminProvider.getIfAvailable() != null;
+               rabbitAdminProvider.getIfAvailable() != null &&
+               messagingProperties.getRabbitMqConfig(connectionId).isEnabled();
+    }
+
+    @Override
+    public void setConnectionId(String connectionId) {
+        this.connectionId = connectionId;
+    }
+
+    @Override
+    public String getConnectionId() {
+        return connectionId;
     }
 
     private String getEventKey(String source, String eventType) {

@@ -38,16 +38,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Implementation of {@link EventSubscriber} that uses AWS Kinesis for event handling.
+ * <p>
+ * This implementation supports multiple Kinesis connections through the {@link ConnectionAwareSubscriber}
+ * interface. Each connection is identified by a connection ID, which is used to look up the
+ * appropriate configuration in {@link MessagingProperties}.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class KinesisEventSubscriber implements EventSubscriber {
+public class KinesisEventSubscriber implements EventSubscriber, ConnectionAwareSubscriber {
 
     private final ObjectProvider<KinesisAsyncClient> kinesisClientProvider;
     private final MessagingProperties messagingProperties;
     private final Map<String, SubscriptionInfo> subscriptions = new ConcurrentHashMap<>();
     private final ExecutorService executorService = Executors.newCachedThreadPool();
+
+    private String connectionId = "default";
 
     @Override
     public Mono<Void> subscribe(
@@ -153,7 +159,18 @@ public class KinesisEventSubscriber implements EventSubscriber {
 
     @Override
     public boolean isAvailable() {
-        return getKinesisClient() != null;
+        return getKinesisClient() != null &&
+               messagingProperties.getKinesisConfig(connectionId).isEnabled();
+    }
+
+    @Override
+    public void setConnectionId(String connectionId) {
+        this.connectionId = connectionId;
+    }
+
+    @Override
+    public String getConnectionId() {
+        return connectionId;
     }
 
     private String getEventKey(String source, String eventType) {
@@ -169,7 +186,7 @@ public class KinesisEventSubscriber implements EventSubscriber {
 
         // If not available, try to create a new client
         try {
-            MessagingProperties.KinesisConfig config = messagingProperties.getKinesis();
+            MessagingProperties.KinesisConfig config = messagingProperties.getKinesisConfig(connectionId);
 
             KinesisAsyncClientBuilder builder = KinesisAsyncClient.builder()
                     .region(Region.of(config.getRegion()));

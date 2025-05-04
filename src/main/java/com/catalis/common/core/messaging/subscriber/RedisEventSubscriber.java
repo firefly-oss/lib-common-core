@@ -20,17 +20,23 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Implementation of {@link EventSubscriber} that uses Redis Pub/Sub for event handling.
+ * <p>
+ * This implementation supports multiple Redis connections through the {@link ConnectionAwareSubscriber}
+ * interface. Each connection is identified by a connection ID, which is used to look up the
+ * appropriate configuration in {@link MessagingProperties}.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class RedisEventSubscriber implements EventSubscriber {
+public class RedisEventSubscriber implements EventSubscriber, ConnectionAwareSubscriber {
 
     private final ObjectProvider<ReactiveRedisTemplate<String, Object>> redisTemplateProvider;
     private final ObjectProvider<RedisConnectionFactory> redisConnectionFactoryProvider;
     private final MessagingProperties messagingProperties;
     private final Map<String, MessageListenerAdapter> listeners = new ConcurrentHashMap<>();
     private RedisMessageListenerContainer listenerContainer;
+
+    private String connectionId = "default";
 
     @Override
     public Mono<Void> subscribe(
@@ -134,7 +140,18 @@ public class RedisEventSubscriber implements EventSubscriber {
     @Override
     public boolean isAvailable() {
         return redisTemplateProvider.getIfAvailable() != null && 
-               redisConnectionFactoryProvider.getIfAvailable() != null;
+               redisConnectionFactoryProvider.getIfAvailable() != null &&
+               messagingProperties.getRedisConfig(connectionId).isEnabled();
+    }
+
+    @Override
+    public void setConnectionId(String connectionId) {
+        this.connectionId = connectionId;
+    }
+
+    @Override
+    public String getConnectionId() {
+        return connectionId;
     }
 
     private String getEventKey(String source, String eventType) {

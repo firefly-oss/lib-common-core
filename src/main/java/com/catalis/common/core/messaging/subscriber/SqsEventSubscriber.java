@@ -20,16 +20,22 @@ import java.util.function.Consumer;
 
 /**
  * Implementation of {@link EventSubscriber} that uses Amazon SQS for event handling.
+ * <p>
+ * This implementation supports multiple SQS connections through the {@link ConnectionAwareSubscriber}
+ * interface. Each connection is identified by a connection ID, which is used to look up the
+ * appropriate configuration in {@link MessagingProperties}.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class SqsEventSubscriber implements EventSubscriber {
+public class SqsEventSubscriber implements EventSubscriber, ConnectionAwareSubscriber {
 
     private final ObjectProvider<SqsTemplate> sqsTemplateProvider;
     private final ObjectProvider<SqsAsyncClient> sqsAsyncClientProvider;
     private final MessagingProperties messagingProperties;
     private final Map<String, SqsMessageListenerContainer<Object>> containers = new ConcurrentHashMap<>();
+
+    private String connectionId = "default";
 
     @Override
     public Mono<Void> subscribe(
@@ -158,7 +164,18 @@ public class SqsEventSubscriber implements EventSubscriber {
     @Override
     public boolean isAvailable() {
         return sqsTemplateProvider.getIfAvailable() != null && 
-               sqsAsyncClientProvider.getIfAvailable() != null;
+               sqsAsyncClientProvider.getIfAvailable() != null &&
+               messagingProperties.getSqsConfig(connectionId).isEnabled();
+    }
+
+    @Override
+    public void setConnectionId(String connectionId) {
+        this.connectionId = connectionId;
+    }
+
+    @Override
+    public String getConnectionId() {
+        return connectionId;
     }
 
     private String getEventKey(String source, String eventType) {

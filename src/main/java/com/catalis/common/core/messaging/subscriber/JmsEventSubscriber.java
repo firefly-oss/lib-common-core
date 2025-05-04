@@ -25,17 +25,23 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Implementation of {@link EventSubscriber} that uses JMS (ActiveMQ) for event handling.
+ * <p>
+ * This implementation supports multiple JMS connections through the {@link ConnectionAwareSubscriber}
+ * interface. Each connection is identified by a connection ID, which is used to look up the
+ * appropriate configuration in {@link MessagingProperties}.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class JmsEventSubscriber implements EventSubscriber {
+public class JmsEventSubscriber implements EventSubscriber, ConnectionAwareSubscriber {
 
     private final ObjectProvider<JmsTemplate> jmsTemplateProvider;
     private final ObjectProvider<JmsListenerContainerFactory<?>> jmsListenerContainerFactoryProvider;
     private final ObjectProvider<JmsListenerEndpointRegistry> jmsListenerEndpointRegistryProvider;
     private final MessagingProperties messagingProperties;
     private final Map<String, String> endpointIds = new ConcurrentHashMap<>();
+
+    private String connectionId = "default";
 
     @Override
     public Mono<Void> subscribe(
@@ -172,7 +178,18 @@ public class JmsEventSubscriber implements EventSubscriber {
     public boolean isAvailable() {
         return jmsTemplateProvider.getIfAvailable() != null && 
                jmsListenerContainerFactoryProvider.getIfAvailable() != null && 
-               jmsListenerEndpointRegistryProvider.getIfAvailable() != null;
+               jmsListenerEndpointRegistryProvider.getIfAvailable() != null &&
+               messagingProperties.getJmsConfig(connectionId).isEnabled();
+    }
+
+    @Override
+    public void setConnectionId(String connectionId) {
+        this.connectionId = connectionId;
+    }
+
+    @Override
+    public String getConnectionId() {
+        return connectionId;
     }
 
     private String getEventKey(String source, String eventType) {

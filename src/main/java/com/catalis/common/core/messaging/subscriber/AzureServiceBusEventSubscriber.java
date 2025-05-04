@@ -20,16 +20,22 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Implementation of {@link EventSubscriber} that uses Azure Service Bus for event handling.
+ * <p>
+ * This implementation supports multiple Azure Service Bus connections through the {@link ConnectionAwareSubscriber}
+ * interface. Each connection is identified by a connection ID, which is used to look up the
+ * appropriate configuration in {@link MessagingProperties}.
  */
 @Component
 // @RequiredArgsConstructor
 @Slf4j
-public class AzureServiceBusEventSubscriber implements EventSubscriber {
+public class AzureServiceBusEventSubscriber implements EventSubscriber, ConnectionAwareSubscriber {
 
     // private final ObjectProvider<ServiceBusTemplateFactory> serviceBusTemplateFactoryProvider;
     private final ObjectProvider<ServiceBusClientBuilder> serviceBusClientBuilderProvider;
     private final MessagingProperties messagingProperties;
     private final Map<String, ServiceBusProcessorClient> processors = new ConcurrentHashMap<>();
+
+    private String connectionId = "default";
 
     public AzureServiceBusEventSubscriber(
             ObjectProvider<ServiceBusClientBuilder> serviceBusClientBuilderProvider,
@@ -185,7 +191,18 @@ public class AzureServiceBusEventSubscriber implements EventSubscriber {
 
     @Override
     public boolean isAvailable() {
-        return serviceBusClientBuilderProvider.getIfAvailable() != null;
+        return serviceBusClientBuilderProvider.getIfAvailable() != null &&
+               messagingProperties.getAzureServiceBusConfig(connectionId).isEnabled();
+    }
+
+    @Override
+    public void setConnectionId(String connectionId) {
+        this.connectionId = connectionId;
+    }
+
+    @Override
+    public String getConnectionId() {
+        return connectionId;
     }
 
     private String getEventKey(String source, String eventType) {

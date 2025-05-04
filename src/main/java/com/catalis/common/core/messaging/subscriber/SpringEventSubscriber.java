@@ -16,14 +16,19 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Implementation of {@link EventSubscriber} that uses Spring's ApplicationContext for event handling.
+ * <p>
+ * This implementation supports the {@link ConnectionAwareSubscriber} interface for consistency,
+ * although Spring events don't use external connections. The connectionId is ignored in this implementation.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class SpringEventSubscriber implements EventSubscriber {
+public class SpringEventSubscriber implements EventSubscriber, ConnectionAwareSubscriber {
 
     private final ApplicationContext applicationContext;
     private final Map<String, EventHandler> eventHandlers = new ConcurrentHashMap<>();
+
+    private String connectionId = "default";
 
     @Override
     public Mono<Void> subscribe(
@@ -119,5 +124,15 @@ public class SpringEventSubscriber implements EventSubscriber {
 
     private String getEventKey(String source, String eventType) {
         return source + ":" + eventType;
+    }
+
+    @Override
+    public void setConnectionId(String connectionId) {
+        this.connectionId = connectionId;
+    }
+
+    @Override
+    public String getConnectionId() {
+        return connectionId;
     }
 }

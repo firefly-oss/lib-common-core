@@ -18,16 +18,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Implementation of {@link EventSubscriber} that uses Google Cloud Pub/Sub for event handling.
+ * <p>
+ * This implementation supports multiple Google Pub/Sub connections through the {@link ConnectionAwareSubscriber}
+ * interface. Each connection is identified by a connection ID, which is used to look up the
+ * appropriate configuration in {@link MessagingProperties}.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class GooglePubSubEventSubscriber implements EventSubscriber {
+public class GooglePubSubEventSubscriber implements EventSubscriber, ConnectionAwareSubscriber {
 
     private final ObjectProvider<PubSubTemplate> pubSubTemplateProvider;
     private final ObjectProvider<PubSubSubscriberTemplate> pubSubSubscriberTemplateProvider;
     private final MessagingProperties messagingProperties;
     private final Map<String, AtomicBoolean> subscriptions = new ConcurrentHashMap<>();
+
+    private String connectionId = "default";
 
     @Override
     public Mono<Void> subscribe(
@@ -146,8 +152,19 @@ public class GooglePubSubEventSubscriber implements EventSubscriber {
 
     @Override
     public boolean isAvailable() {
-        return pubSubTemplateProvider.getIfAvailable() != null || 
-               pubSubSubscriberTemplateProvider.getIfAvailable() != null;
+        return (pubSubTemplateProvider.getIfAvailable() != null || 
+               pubSubSubscriberTemplateProvider.getIfAvailable() != null) &&
+               messagingProperties.getGooglePubSubConfig(connectionId).isEnabled();
+    }
+
+    @Override
+    public void setConnectionId(String connectionId) {
+        this.connectionId = connectionId;
+    }
+
+    @Override
+    public String getConnectionId() {
+        return connectionId;
     }
 
     private String getEventKey(String source, String eventType) {
