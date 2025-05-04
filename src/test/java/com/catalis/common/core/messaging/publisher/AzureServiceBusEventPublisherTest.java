@@ -56,7 +56,8 @@ public class AzureServiceBusEventPublisherTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        lenient().when(messagingProperties.getAzureServiceBus()).thenReturn(azureConfig);
+        lenient().when(messagingProperties.getAzureServiceBusConfig(anyString())).thenReturn(azureConfig);
+        lenient().when(azureConfig.isEnabled()).thenReturn(true);
         lenient().when(serviceBusClientBuilderProvider.getIfAvailable()).thenReturn(serviceBusClientBuilder);
         lenient().when(serviceBusClientBuilder.sender()).thenReturn(senderClientBuilder);
         lenient().when(senderClientBuilder.queueName(anyString())).thenReturn(senderClientBuilder);
@@ -210,6 +211,8 @@ public class AzureServiceBusEventPublisherTest {
     void shouldBeAvailableWhenServiceBusClientBuilderIsAvailable() {
         // Given
         when(serviceBusClientBuilderProvider.getIfAvailable()).thenReturn(mock(ServiceBusClientBuilder.class));
+        when(messagingProperties.getAzureServiceBusConfig(anyString())).thenReturn(azureConfig);
+        when(azureConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = publisher.isAvailable();
@@ -222,6 +225,10 @@ public class AzureServiceBusEventPublisherTest {
     void shouldNotBeAvailableWhenServiceBusClientBuilderIsNotAvailable() {
         // Given
         when(serviceBusClientBuilderProvider.getIfAvailable()).thenReturn(null);
+        // These mocks are not used in this test because the method returns early
+        // when serviceBusClientBuilderProvider.getIfAvailable() returns null
+        // lenient().when(messagingProperties.getAzureServiceBusConfig(anyString())).thenReturn(azureConfig);
+        // lenient().when(azureConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = publisher.isAvailable();

@@ -52,7 +52,8 @@ public class KinesisEventPublisherTest {
 
     @BeforeEach
     void setUp() {
-        lenient().when(messagingProperties.getKinesis()).thenReturn(kinesisConfig);
+        lenient().when(messagingProperties.getKinesisConfig(anyString())).thenReturn(kinesisConfig);
+        lenient().when(kinesisConfig.isEnabled()).thenReturn(true);
         lenient().when(kinesisClientProvider.getIfAvailable()).thenReturn(kinesisClient);
     }
 
@@ -183,6 +184,8 @@ public class KinesisEventPublisherTest {
     void shouldBeAvailableWhenKinesisClientIsAvailable() {
         // Given
         when(kinesisClientProvider.getIfAvailable()).thenReturn(kinesisClient);
+        when(messagingProperties.getKinesisConfig(anyString())).thenReturn(kinesisConfig);
+        when(kinesisConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = publisher.isAvailable();
@@ -195,6 +198,10 @@ public class KinesisEventPublisherTest {
     void shouldNotBeAvailableWhenKinesisClientIsNotAvailable() {
         // Given
         when(kinesisClientProvider.getIfAvailable()).thenReturn(null);
+        // These mocks are not used in this test because the method returns early
+        // when kinesisClientProvider.getIfAvailable() returns null
+        // lenient().when(messagingProperties.getKinesisConfig(anyString())).thenReturn(kinesisConfig);
+        // lenient().when(kinesisConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = publisher.isAvailable();

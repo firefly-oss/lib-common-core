@@ -44,6 +44,9 @@ public class AzureServiceBusEventSubscriberTest {
     private MessagingProperties messagingProperties;
 
     @Mock
+    private MessagingProperties.AzureServiceBusConfig azureServiceBusConfig;
+
+    @Mock
     private EventHandler eventHandler;
 
     private AzureServiceBusEventSubscriber subscriber;
@@ -64,6 +67,8 @@ public class AzureServiceBusEventSubscriberTest {
         lenient().when(processorClientBuilder.processError(any())).thenReturn(processorClientBuilder);
         lenient().when(processorClientBuilder.buildProcessorClient()).thenReturn(processorClient);
         lenient().when(eventHandler.handleEvent(any(), anyMap(), any())).thenReturn(Mono.empty());
+        lenient().when(messagingProperties.getAzureServiceBusConfig(anyString())).thenReturn(azureServiceBusConfig);
+        lenient().when(azureServiceBusConfig.isEnabled()).thenReturn(true);
 
         subscriber = new TestAzureServiceBusEventSubscriber(
                 serviceBusClientBuilderProvider,
@@ -239,6 +244,8 @@ public class AzureServiceBusEventSubscriberTest {
     void shouldBeAvailableWhenClientBuilderIsAvailable() {
         // Given
         when(serviceBusClientBuilderProvider.getIfAvailable()).thenReturn(serviceBusClientBuilder);
+        when(messagingProperties.getAzureServiceBusConfig(anyString())).thenReturn(azureServiceBusConfig);
+        when(azureServiceBusConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();
@@ -251,6 +258,10 @@ public class AzureServiceBusEventSubscriberTest {
     void shouldNotBeAvailableWhenClientBuilderIsNotAvailable() {
         // Given
         when(serviceBusClientBuilderProvider.getIfAvailable()).thenReturn(null);
+        // These mocks are not used in this test because the method returns early
+        // when serviceBusClientBuilderProvider.getIfAvailable() returns null
+        // lenient().when(messagingProperties.getAzureServiceBusConfig(anyString())).thenReturn(azureServiceBusConfig);
+        // lenient().when(azureServiceBusConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();

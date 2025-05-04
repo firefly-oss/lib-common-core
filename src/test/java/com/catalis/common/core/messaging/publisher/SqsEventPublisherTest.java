@@ -54,7 +54,8 @@ public class SqsEventPublisherTest {
         reset(sqsTemplateProvider, sqsAsyncClientProvider, sqsTemplate, messagingProperties, sqsConfig);
 
         // Set up common mocks
-        lenient().when(messagingProperties.getSqs()).thenReturn(sqsConfig);
+        lenient().when(messagingProperties.getSqsConfig(anyString())).thenReturn(sqsConfig);
+        lenient().when(sqsConfig.isEnabled()).thenReturn(true);
 
         // Make sure the mocks return null by default
         lenient().when(sqsTemplateProvider.getIfAvailable()).thenReturn(null);
@@ -163,6 +164,8 @@ public class SqsEventPublisherTest {
         // Given
         lenient().when(sqsTemplateProvider.getIfAvailable()).thenReturn(sqsTemplate);
         lenient().when(sqsAsyncClientProvider.getIfAvailable()).thenReturn(mock(SqsAsyncClient.class));
+        lenient().when(messagingProperties.getSqsConfig(anyString())).thenReturn(sqsConfig);
+        lenient().when(sqsConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = publisher.isAvailable();
@@ -177,9 +180,12 @@ public class SqsEventPublisherTest {
         // Create a new publisher with mocked dependencies
         ObjectProvider<SqsTemplate> mockTemplateProvider = mock(ObjectProvider.class);
         ObjectProvider<SqsAsyncClient> mockClientProvider = mock(ObjectProvider.class);
+        MessagingProperties.SqsConfig mockSqsConfig = mock(MessagingProperties.SqsConfig.class);
 
-        when(mockTemplateProvider.getIfAvailable()).thenReturn(null);
-        when(mockClientProvider.getIfAvailable()).thenReturn(mock(SqsAsyncClient.class));
+        lenient().when(mockTemplateProvider.getIfAvailable()).thenReturn(null);
+        lenient().when(mockClientProvider.getIfAvailable()).thenReturn(mock(SqsAsyncClient.class));
+        lenient().when(messagingProperties.getSqsConfig(anyString())).thenReturn(mockSqsConfig);
+        lenient().when(mockSqsConfig.isEnabled()).thenReturn(true);
 
         SqsEventPublisher testPublisher = new SqsEventPublisher(
             mockTemplateProvider,
@@ -201,9 +207,12 @@ public class SqsEventPublisherTest {
         SqsTemplate mockTemplate = mock(SqsTemplate.class);
         ObjectProvider<SqsTemplate> mockTemplateProvider = mock(ObjectProvider.class);
         ObjectProvider<SqsAsyncClient> mockClientProvider = mock(ObjectProvider.class);
+        MessagingProperties.SqsConfig mockSqsConfig = mock(MessagingProperties.SqsConfig.class);
 
-        when(mockTemplateProvider.getIfAvailable()).thenReturn(mockTemplate);
-        when(mockClientProvider.getIfAvailable()).thenReturn(null);
+        lenient().when(mockTemplateProvider.getIfAvailable()).thenReturn(mockTemplate);
+        lenient().when(mockClientProvider.getIfAvailable()).thenReturn(null);
+        lenient().when(messagingProperties.getSqsConfig(anyString())).thenReturn(mockSqsConfig);
+        lenient().when(mockSqsConfig.isEnabled()).thenReturn(true);
 
         SqsEventPublisher testPublisher = new SqsEventPublisher(
             mockTemplateProvider,

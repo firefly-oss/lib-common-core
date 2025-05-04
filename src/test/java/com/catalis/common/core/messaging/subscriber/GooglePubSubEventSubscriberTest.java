@@ -44,6 +44,9 @@ public class GooglePubSubEventSubscriberTest {
     private MessagingProperties messagingProperties;
 
     @Mock
+    private MessagingProperties.GooglePubSubConfig googlePubSubConfig;
+
+    @Mock
     private EventHandler eventHandler;
 
     @Mock
@@ -61,6 +64,8 @@ public class GooglePubSubEventSubscriberTest {
     void setUp() {
         lenient().when(pubSubTemplateProvider.getIfAvailable()).thenReturn(pubSubTemplate);
         lenient().when(pubSubSubscriberTemplateProvider.getIfAvailable()).thenReturn(pubSubSubscriberTemplate);
+        lenient().when(messagingProperties.getGooglePubSubConfig(anyString())).thenReturn(googlePubSubConfig);
+        lenient().when(googlePubSubConfig.isEnabled()).thenReturn(true);
         lenient().when(eventHandler.handleEvent(any(), anyMap(), any())).thenReturn(Mono.empty());
 
         // Mock the BasicAcknowledgeablePubsubMessage
@@ -229,6 +234,8 @@ public class GooglePubSubEventSubscriberTest {
         // Given
         // No need to stub pubSubTemplateProvider.getIfAvailable() as it's already set up in setUp()
         lenient().when(pubSubSubscriberTemplateProvider.getIfAvailable()).thenReturn(null);
+        lenient().when(messagingProperties.getGooglePubSubConfig(anyString())).thenReturn(googlePubSubConfig);
+        lenient().when(googlePubSubConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();
@@ -242,6 +249,8 @@ public class GooglePubSubEventSubscriberTest {
         // Given
         when(pubSubTemplateProvider.getIfAvailable()).thenReturn(null);
         when(pubSubSubscriberTemplateProvider.getIfAvailable()).thenReturn(pubSubSubscriberTemplate);
+        when(messagingProperties.getGooglePubSubConfig(anyString())).thenReturn(googlePubSubConfig);
+        when(googlePubSubConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();
@@ -255,6 +264,10 @@ public class GooglePubSubEventSubscriberTest {
         // Given
         when(pubSubTemplateProvider.getIfAvailable()).thenReturn(null);
         when(pubSubSubscriberTemplateProvider.getIfAvailable()).thenReturn(null);
+        // These mocks are not used in this test because the method returns early
+        // when both template providers return null
+        // lenient().when(messagingProperties.getGooglePubSubConfig(anyString())).thenReturn(googlePubSubConfig);
+        // lenient().when(googlePubSubConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();

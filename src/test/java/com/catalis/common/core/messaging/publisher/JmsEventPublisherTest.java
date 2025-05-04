@@ -56,7 +56,8 @@ public class JmsEventPublisherTest {
 
     @BeforeEach
     void setUp() {
-        lenient().when(messagingProperties.getJms()).thenReturn(jmsConfig);
+        lenient().when(messagingProperties.getJmsConfig(anyString())).thenReturn(jmsConfig);
+        lenient().when(jmsConfig.isEnabled()).thenReturn(true);
     }
 
     @Test

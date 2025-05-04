@@ -55,6 +55,9 @@ public class JmsEventSubscriberTest {
     private MessagingProperties messagingProperties;
 
     @Mock
+    private MessagingProperties.JmsConfig jmsConfig;
+
+    @Mock
     private EventHandler eventHandler;
 
     private JmsEventSubscriber subscriber;
@@ -69,6 +72,8 @@ public class JmsEventSubscriberTest {
         lenient().when(jmsListenerEndpointRegistryProvider.getIfAvailable()).thenReturn(jmsListenerEndpointRegistry);
         lenient().when(eventHandler.handleEvent(any(), anyMap(), any())).thenReturn(Mono.empty());
         lenient().when(jmsListenerEndpointRegistry.getListenerContainer(anyString())).thenReturn(messageListenerContainer);
+        lenient().when(messagingProperties.getJmsConfig(anyString())).thenReturn(jmsConfig);
+        lenient().when(jmsConfig.isEnabled()).thenReturn(true);
 
         subscriber = new TestJmsEventSubscriber(
                 jmsTemplateProvider,
@@ -223,6 +228,8 @@ public class JmsEventSubscriberTest {
         when(jmsTemplateProvider.getIfAvailable()).thenReturn(jmsTemplate);
         when(jmsListenerContainerFactoryProvider.getIfAvailable()).thenReturn(jmsListenerContainerFactory);
         when(jmsListenerEndpointRegistryProvider.getIfAvailable()).thenReturn(jmsListenerEndpointRegistry);
+        when(messagingProperties.getJmsConfig(anyString())).thenReturn(jmsConfig);
+        when(jmsConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();
@@ -237,6 +244,10 @@ public class JmsEventSubscriberTest {
         lenient().when(jmsTemplateProvider.getIfAvailable()).thenReturn(null);
         lenient().when(jmsListenerContainerFactoryProvider.getIfAvailable()).thenReturn(jmsListenerContainerFactory);
         lenient().when(jmsListenerEndpointRegistryProvider.getIfAvailable()).thenReturn(jmsListenerEndpointRegistry);
+        // These mocks are not used in this test because the method returns early
+        // when jmsTemplateProvider.getIfAvailable() returns null
+        // lenient().when(messagingProperties.getJmsConfig(anyString())).thenReturn(jmsConfig);
+        // lenient().when(jmsConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();
@@ -251,6 +262,10 @@ public class JmsEventSubscriberTest {
         lenient().when(jmsTemplateProvider.getIfAvailable()).thenReturn(jmsTemplate);
         lenient().when(jmsListenerContainerFactoryProvider.getIfAvailable()).thenReturn(null);
         lenient().when(jmsListenerEndpointRegistryProvider.getIfAvailable()).thenReturn(jmsListenerEndpointRegistry);
+        // These mocks are not used in this test because the method returns early
+        // when jmsListenerContainerFactoryProvider.getIfAvailable() returns null
+        // lenient().when(messagingProperties.getJmsConfig(anyString())).thenReturn(jmsConfig);
+        // lenient().when(jmsConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();
@@ -265,6 +280,10 @@ public class JmsEventSubscriberTest {
         when(jmsTemplateProvider.getIfAvailable()).thenReturn(jmsTemplate);
         when(jmsListenerContainerFactoryProvider.getIfAvailable()).thenReturn(jmsListenerContainerFactory);
         when(jmsListenerEndpointRegistryProvider.getIfAvailable()).thenReturn(null);
+        // These mocks are not used in this test because the method returns early
+        // when jmsListenerEndpointRegistryProvider.getIfAvailable() returns null
+        // lenient().when(messagingProperties.getJmsConfig(anyString())).thenReturn(jmsConfig);
+        // lenient().when(jmsConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();

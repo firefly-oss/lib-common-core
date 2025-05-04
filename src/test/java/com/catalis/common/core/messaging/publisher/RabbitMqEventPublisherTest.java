@@ -44,7 +44,7 @@ public class RabbitMqEventPublisherTest {
         String transactionId = "test-transaction-id";
 
         lenient().when(rabbitTemplateProvider.getIfAvailable()).thenReturn(rabbitTemplate);
-        lenient().when(messagingProperties.getRabbitmq()).thenReturn(rabbitMqConfig);
+        lenient().when(messagingProperties.getRabbitMqConfig(anyString())).thenReturn(rabbitMqConfig);
         lenient().when(rabbitMqConfig.getDefaultRoutingKey()).thenReturn("default");
 
         // When
@@ -65,7 +65,7 @@ public class RabbitMqEventPublisherTest {
         String defaultRoutingKey = "default-routing-key";
 
         when(rabbitTemplateProvider.getIfAvailable()).thenReturn(rabbitTemplate);
-        when(messagingProperties.getRabbitmq()).thenReturn(rabbitMqConfig);
+        when(messagingProperties.getRabbitMqConfig(anyString())).thenReturn(rabbitMqConfig);
         when(rabbitMqConfig.getDefaultRoutingKey()).thenReturn(defaultRoutingKey);
 
         // When
@@ -100,6 +100,8 @@ public class RabbitMqEventPublisherTest {
     void shouldBeAvailableWhenRabbitTemplateIsAvailable() {
         // Given
         when(rabbitTemplateProvider.getIfAvailable()).thenReturn(rabbitTemplate);
+        when(messagingProperties.getRabbitMqConfig(anyString())).thenReturn(rabbitMqConfig);
+        when(rabbitMqConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = publisher.isAvailable();
@@ -112,6 +114,10 @@ public class RabbitMqEventPublisherTest {
     void shouldNotBeAvailableWhenRabbitTemplateIsNotAvailable() {
         // Given
         when(rabbitTemplateProvider.getIfAvailable()).thenReturn(null);
+        // These mocks are not used in this test because the method returns early
+        // when rabbitTemplateProvider.getIfAvailable() returns null
+        // lenient().when(messagingProperties.getRabbitMqConfig(anyString())).thenReturn(rabbitMqConfig);
+        // lenient().when(rabbitMqConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = publisher.isAvailable();

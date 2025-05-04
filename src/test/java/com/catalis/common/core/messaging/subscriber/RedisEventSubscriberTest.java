@@ -42,6 +42,9 @@ public class RedisEventSubscriberTest {
     private MessagingProperties messagingProperties;
 
     @Mock
+    private MessagingProperties.RedisConfig redisConfig;
+
+    @Mock
     private EventHandler eventHandler;
 
     @Mock
@@ -60,6 +63,8 @@ public class RedisEventSubscriberTest {
         lenient().when(redisTemplateProvider.getIfAvailable()).thenReturn(redisTemplate);
         lenient().when(redisConnectionFactoryProvider.getIfAvailable()).thenReturn(redisConnectionFactory);
         lenient().when(eventHandler.handleEvent(any(), anyMap(), any())).thenReturn(Mono.empty());
+        lenient().when(messagingProperties.getRedisConfig(anyString())).thenReturn(redisConfig);
+        lenient().when(redisConfig.isEnabled()).thenReturn(true);
 
         subscriber = new TestRedisEventSubscriber(
                 redisTemplateProvider,
@@ -123,24 +128,24 @@ public class RedisEventSubscriberTest {
                 String clientId,
                 int concurrency,
                 boolean autoAck) {
-            
+
             return Mono.fromRunnable(() -> {
                 // Only proceed if the connection factory is available
                 if (redisConnectionFactoryProvider.getIfAvailable() == null) {
                     return;
                 }
-                
+
                 // Check if already subscribed
                 String key = source + ":" + eventType;
                 if (getListeners().containsKey(key)) {
                     return;
                 }
-                
+
                 // Set up a mock listener container if needed
                 if (listenerContainer == null) {
                     setListenerContainer(mock(RedisMessageListenerContainer.class));
                 }
-                
+
                 // Add a mock listener adapter to the map
                 getListeners().put(key, messageListenerAdapter);
             });
@@ -244,6 +249,8 @@ public class RedisEventSubscriberTest {
         // Given
         when(redisTemplateProvider.getIfAvailable()).thenReturn(redisTemplate);
         when(redisConnectionFactoryProvider.getIfAvailable()).thenReturn(redisConnectionFactory);
+        when(messagingProperties.getRedisConfig(anyString())).thenReturn(redisConfig);
+        when(redisConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();
@@ -257,6 +264,10 @@ public class RedisEventSubscriberTest {
         // Given
         lenient().when(redisTemplateProvider.getIfAvailable()).thenReturn(null);
         lenient().when(redisConnectionFactoryProvider.getIfAvailable()).thenReturn(redisConnectionFactory);
+        // These mocks are not used in this test because the method returns early
+        // when redisTemplateProvider.getIfAvailable() returns null
+        // lenient().when(messagingProperties.getRedisConfig(anyString())).thenReturn(redisConfig);
+        // lenient().when(redisConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();
@@ -270,6 +281,10 @@ public class RedisEventSubscriberTest {
         // Given
         lenient().when(redisTemplateProvider.getIfAvailable()).thenReturn(redisTemplate);
         lenient().when(redisConnectionFactoryProvider.getIfAvailable()).thenReturn(null);
+        // These mocks are not used in this test because the method returns early
+        // when redisConnectionFactoryProvider.getIfAvailable() returns null
+        // lenient().when(messagingProperties.getRedisConfig(anyString())).thenReturn(redisConfig);
+        // lenient().when(redisConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();

@@ -55,7 +55,8 @@ public class GooglePubSubEventPublisherTest {
         reset(pubSubTemplateProvider, pubSubPublisherTemplateProvider, pubSubTemplate, messagingProperties, pubSubConfig);
 
         // Set up common mocks
-        lenient().when(messagingProperties.getGooglePubSub()).thenReturn(pubSubConfig);
+        lenient().when(messagingProperties.getGooglePubSubConfig(anyString())).thenReturn(pubSubConfig);
+        lenient().when(pubSubConfig.isEnabled()).thenReturn(true);
 
         // Make sure the mocks return null by default
         lenient().when(pubSubTemplateProvider.getIfAvailable()).thenReturn(null);
@@ -134,6 +135,8 @@ public class GooglePubSubEventPublisherTest {
         PubSubTemplate mockTemplate = mock(PubSubTemplate.class);
         ObjectProvider<PubSubTemplate> mockProvider = mock(ObjectProvider.class);
         when(mockProvider.getIfAvailable()).thenReturn(mockTemplate);
+        when(messagingProperties.getGooglePubSubConfig(anyString())).thenReturn(pubSubConfig);
+        when(pubSubConfig.isEnabled()).thenReturn(true);
 
         GooglePubSubEventPublisher testPublisher = new GooglePubSubEventPublisher(
             mockProvider,
@@ -156,6 +159,8 @@ public class GooglePubSubEventPublisherTest {
         PubSubPublisherTemplate mockTemplate = mock(PubSubPublisherTemplate.class);
         ObjectProvider<PubSubPublisherTemplate> mockProvider = mock(ObjectProvider.class);
         when(mockProvider.getIfAvailable()).thenReturn(mockTemplate);
+        when(messagingProperties.getGooglePubSubConfig(anyString())).thenReturn(pubSubConfig);
+        when(pubSubConfig.isEnabled()).thenReturn(true);
 
         GooglePubSubEventPublisher testPublisher = new GooglePubSubEventPublisher(
             pubSubTemplateProvider,

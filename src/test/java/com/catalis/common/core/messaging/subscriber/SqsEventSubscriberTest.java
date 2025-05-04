@@ -93,7 +93,8 @@ public class SqsEventSubscriberTest {
 
     @BeforeEach
     void setUp() {
-        lenient().when(messagingProperties.getSqs()).thenReturn(sqsConfig);
+        lenient().when(messagingProperties.getSqsConfig(anyString())).thenReturn(sqsConfig);
+        lenient().when(sqsConfig.isEnabled()).thenReturn(true);
         lenient().when(sqsTemplateProvider.getIfAvailable()).thenReturn(sqsTemplate);
         lenient().when(sqsAsyncClientProvider.getIfAvailable()).thenReturn(sqsAsyncClient);
         lenient().when(eventHandler.handleEvent(any(), anyMap(), any())).thenReturn(Mono.empty());
@@ -205,6 +206,8 @@ public class SqsEventSubscriberTest {
         // Given
         lenient().when(sqsTemplateProvider.getIfAvailable()).thenReturn(sqsTemplate);
         lenient().when(sqsAsyncClientProvider.getIfAvailable()).thenReturn(sqsAsyncClient);
+        lenient().when(messagingProperties.getSqsConfig(anyString())).thenReturn(sqsConfig);
+        lenient().when(sqsConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();
@@ -218,6 +221,10 @@ public class SqsEventSubscriberTest {
         // Given
         lenient().when(sqsTemplateProvider.getIfAvailable()).thenReturn(null);
         lenient().when(sqsAsyncClientProvider.getIfAvailable()).thenReturn(sqsAsyncClient);
+        // These mocks are not used in this test because the method returns early
+        // when sqsTemplateProvider.getIfAvailable() returns null
+        // lenient().when(messagingProperties.getSqsConfig(anyString())).thenReturn(sqsConfig);
+        // lenient().when(sqsConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();
@@ -231,6 +238,10 @@ public class SqsEventSubscriberTest {
         // Given
         lenient().when(sqsTemplateProvider.getIfAvailable()).thenReturn(sqsTemplate);
         lenient().when(sqsAsyncClientProvider.getIfAvailable()).thenReturn(null);
+        // These mocks are not used in this test because the method returns early
+        // when sqsAsyncClientProvider.getIfAvailable() returns null
+        // lenient().when(messagingProperties.getSqsConfig(anyString())).thenReturn(sqsConfig);
+        // lenient().when(sqsConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();

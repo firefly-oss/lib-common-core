@@ -59,7 +59,8 @@ public class RabbitMqEventSubscriberTest {
     void setUp() {
         lenient().when(connectionFactoryProvider.getIfAvailable()).thenReturn(connectionFactory);
         lenient().when(rabbitAdminProvider.getIfAvailable()).thenReturn(rabbitAdmin);
-        lenient().when(messagingProperties.getRabbitmq()).thenReturn(rabbitMqConfig);
+        lenient().when(messagingProperties.getRabbitMqConfig(anyString())).thenReturn(rabbitMqConfig);
+        lenient().when(rabbitMqConfig.isEnabled()).thenReturn(true);
         lenient().when(rabbitMqConfig.isDurable()).thenReturn(true);
         lenient().when(rabbitMqConfig.isAutoDelete()).thenReturn(false);
         lenient().when(rabbitMqConfig.isExclusive()).thenReturn(false);
@@ -269,6 +270,8 @@ public class RabbitMqEventSubscriberTest {
         // Given
         when(connectionFactoryProvider.getIfAvailable()).thenReturn(connectionFactory);
         when(rabbitAdminProvider.getIfAvailable()).thenReturn(rabbitAdmin);
+        when(messagingProperties.getRabbitMqConfig(anyString())).thenReturn(rabbitMqConfig);
+        when(rabbitMqConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();
@@ -282,6 +285,10 @@ public class RabbitMqEventSubscriberTest {
         // Given
         lenient().when(connectionFactoryProvider.getIfAvailable()).thenReturn(null);
         lenient().when(rabbitAdminProvider.getIfAvailable()).thenReturn(rabbitAdmin);
+        // These mocks are not used in this test because the method returns early
+        // when connectionFactoryProvider.getIfAvailable() returns null
+        // lenient().when(messagingProperties.getRabbitMqConfig(anyString())).thenReturn(rabbitMqConfig);
+        // lenient().when(rabbitMqConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();
@@ -295,6 +302,10 @@ public class RabbitMqEventSubscriberTest {
         // Given
         when(connectionFactoryProvider.getIfAvailable()).thenReturn(connectionFactory);
         when(rabbitAdminProvider.getIfAvailable()).thenReturn(null);
+        // These mocks are not used in this test because the method returns early
+        // when rabbitAdminProvider.getIfAvailable() returns null
+        // lenient().when(messagingProperties.getRabbitMqConfig(anyString())).thenReturn(rabbitMqConfig);
+        // lenient().when(rabbitMqConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = subscriber.isAvailable();

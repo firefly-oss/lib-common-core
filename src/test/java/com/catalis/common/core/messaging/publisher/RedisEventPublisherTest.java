@@ -46,7 +46,8 @@ public class RedisEventPublisherTest {
 
     @BeforeEach
     void setUp() {
-        lenient().when(messagingProperties.getRedis()).thenReturn(redisConfig);
+        lenient().when(messagingProperties.getRedisConfig(anyString())).thenReturn(redisConfig);
+        lenient().when(redisConfig.isEnabled()).thenReturn(true);
     }
 
     @Test
@@ -171,6 +172,8 @@ public class RedisEventPublisherTest {
     void shouldBeAvailableWhenRedisTemplateIsAvailable() {
         // Given
         when(redisTemplateProvider.getIfAvailable()).thenReturn(redisTemplate);
+        when(messagingProperties.getRedisConfig(anyString())).thenReturn(redisConfig);
+        when(redisConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = publisher.isAvailable();
@@ -183,6 +186,10 @@ public class RedisEventPublisherTest {
     void shouldNotBeAvailableWhenRedisTemplateIsNotAvailable() {
         // Given
         when(redisTemplateProvider.getIfAvailable()).thenReturn(null);
+        // These mocks are not used in this test because the method returns early
+        // when redisTemplateProvider.getIfAvailable() returns null
+        // lenient().when(messagingProperties.getRedisConfig(anyString())).thenReturn(redisConfig);
+        // lenient().when(redisConfig.isEnabled()).thenReturn(true);
 
         // When
         boolean available = publisher.isAvailable();
