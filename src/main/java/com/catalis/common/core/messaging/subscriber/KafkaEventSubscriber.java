@@ -25,16 +25,22 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Implementation of {@link EventSubscriber} that uses Kafka for event handling.
+ * <p>
+ * This implementation supports multiple Kafka connections through the {@link ConnectionAwareSubscriber}
+ * interface. Each connection is identified by a connection ID, which is used to look up the
+ * appropriate configuration in {@link MessagingProperties}.
  */
 @Component
 @Slf4j
-public class KafkaEventSubscriber implements EventSubscriber {
+public class KafkaEventSubscriber implements EventSubscriber, ConnectionAwareSubscriber {
 
     private final ObjectProvider<KafkaTemplate<String, Object>> kafkaTemplateProvider;
     private final ObjectProvider<KafkaListenerEndpointRegistry> kafkaListenerEndpointRegistryProvider;
     private final MessagingProperties messagingProperties;
     private final Map<String, Flux<reactor.kafka.receiver.ReceiverRecord<String, byte[]>>> subscriptions = new ConcurrentHashMap<>();
     private final Map<String, ConcurrentMessageListenerContainer<String, Object>> containers = new ConcurrentHashMap<>();
+
+    private String connectionId = "default";
 
     public KafkaEventSubscriber(
             ObjectProvider<KafkaTemplate<String, Object>> kafkaTemplateProvider,
@@ -66,9 +72,9 @@ public class KafkaEventSubscriber implements EventSubscriber {
             // Create consumer properties
             Map<String, Object> props = new HashMap<>();
             props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, messagingProperties.getKafka().getBootstrapServers());
-            props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId.isEmpty() ? 
+            props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId.isEmpty() ?
                     "messaging-consumer-" + source : groupId);
-            props.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId.isEmpty() ? 
+            props.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId.isEmpty() ?
                     "messaging-client-" + source : clientId);
             props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
             props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
@@ -97,7 +103,7 @@ public class KafkaEventSubscriber implements EventSubscriber {
                     .subscription(Collections.singleton(source));
 
             // Create consumer template
-            ReactiveKafkaConsumerTemplate<String, byte[]> template = 
+            ReactiveKafkaConsumerTemplate<String, byte[]> template =
                     new ReactiveKafkaConsumerTemplate<>(receiverOptions);
 
             // Subscribe to the topic
@@ -120,11 +126,11 @@ public class KafkaEventSubscriber implements EventSubscriber {
                         headers.put(KafkaHeaders.OFFSET, record.offset());
 
                         // Add custom headers
-                        record.headers().forEach(header -> 
+                        record.headers().forEach(header ->
                                 headers.put(header.key(), new String(header.value())));
 
                         // Create acknowledgement
-                        EventHandler.Acknowledgement ack = autoAck ? null : 
+                        EventHandler.Acknowledgement ack = autoAck ? null :
                                 () -> Mono.fromRunnable(() -> record.receiverOffset().acknowledge());
 
                         // Handle the event
@@ -144,7 +150,7 @@ public class KafkaEventSubscriber implements EventSubscriber {
             log.info("Subscribed to Kafka topic {} with event type {}", source, eventType);
             return Mono.empty();
         } catch (Exception e) {
-            log.error("Failed to subscribe to Kafka topic {} with event type {}: {}", 
+            log.error("Failed to subscribe to Kafka topic {} with event type {}: {}",
                     source, eventType, e.getMessage(), e);
             return Mono.error(e);
         }
@@ -166,8 +172,19 @@ public class KafkaEventSubscriber implements EventSubscriber {
 
     @Override
     public boolean isAvailable() {
-        return kafkaTemplateProvider.getIfAvailable() != null && 
-               kafkaListenerEndpointRegistryProvider.getIfAvailable() != null;
+        return kafkaTemplateProvider.getIfAvailable() != null &&
+               kafkaListenerEndpointRegistryProvider.getIfAvailable() != null &&
+               messagingProperties.getKafkaConfig(connectionId).isEnabled();
+    }
+
+    @Override
+    public void setConnectionId(String connectionId) {
+        this.connectionId = connectionId;
+    }
+
+    @Override
+    public String getConnectionId() {
+        return connectionId;
     }
 
     private String getEventKey(String source, String eventType) {

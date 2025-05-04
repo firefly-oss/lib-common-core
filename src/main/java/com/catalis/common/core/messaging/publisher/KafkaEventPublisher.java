@@ -1,5 +1,6 @@
 package com.catalis.common.core.messaging.publisher;
 
+import com.catalis.common.core.messaging.config.MessagingProperties;
 import com.catalis.common.core.messaging.serialization.MessageSerializer;
 import com.catalis.common.core.messaging.serialization.SerializationException;
 import lombok.RequiredArgsConstructor;
@@ -14,13 +15,20 @@ import reactor.core.publisher.Mono;
 
 /**
  * Implementation of {@link EventPublisher} that publishes events to Kafka.
+ * <p>
+ * This implementation supports multiple Kafka connections through the {@link ConnectionAwarePublisher}
+ * interface. Each connection is identified by a connection ID, which is used to look up the
+ * appropriate configuration in {@link MessagingProperties}.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class KafkaEventPublisher implements EventPublisher {
+public class KafkaEventPublisher implements EventPublisher, ConnectionAwarePublisher {
 
     private final ObjectProvider<KafkaTemplate<String, Object>> kafkaTemplateProvider;
+    private final MessagingProperties messagingProperties;
+
+    private String connectionId = "default";
 
     @Override
     public Mono<Void> publish(String destination, String eventType, Object payload, String transactionId) {
@@ -109,7 +117,7 @@ public class KafkaEventPublisher implements EventPublisher {
 
                 // Send the message and return a completed Mono
                 kafkaTemplate.send(message);
-                log.debug("Event sent to Kafka with serializer {}: topic={}, type={}", 
+                log.debug("Event sent to Kafka with serializer {}: topic={}, type={}",
                         serializer.getFormat(), destination, eventType);
                 return Mono.empty();
             } catch (SerializationException e) {
@@ -124,6 +132,17 @@ public class KafkaEventPublisher implements EventPublisher {
 
     @Override
     public boolean isAvailable() {
-        return kafkaTemplateProvider.getIfAvailable() != null;
+        return kafkaTemplateProvider.getIfAvailable() != null &&
+               messagingProperties.getKafkaConfig(connectionId).isEnabled();
+    }
+
+    @Override
+    public void setConnectionId(String connectionId) {
+        this.connectionId = connectionId;
+    }
+
+    @Override
+    public String getConnectionId() {
+        return connectionId;
     }
 }
