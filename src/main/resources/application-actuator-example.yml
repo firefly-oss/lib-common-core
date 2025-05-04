@@ -1,0 +1,84 @@
+management:
+  # Endpoints configuration
+  endpoints:
+    # Enable or disable all endpoints
+    enabled: true
+    
+    # Web exposure configuration
+    web:
+      # Endpoints to expose via web. Use '*' for all endpoints or a comma-separated list
+      exposure: "*"
+      # Base path for actuator endpoints
+      base-path: /actuator
+      # Whether to include details in responses
+      include-details: true
+    
+    # JMX exposure configuration
+    jmx:
+      # Endpoints to expose via JMX. Use '*' for all endpoints or a comma-separated list
+      exposure: "*"
+      # Domain for JMX endpoints
+      domain: org.springframework.boot
+  
+  # Metrics configuration
+  metrics:
+    # Enable or disable metrics collection
+    enabled: true
+    # Tags to add to all metrics
+    tags:
+      application: ${spring.application.name:application}
+      environment: ${spring.profiles.active:default}
+    
+    # Prometheus configuration
+    prometheus:
+      # Enable or disable Prometheus metrics endpoint
+      enabled: true
+      # Path for Prometheus metrics endpoint
+      path: /actuator/prometheus
+  
+  # Tracing configuration
+  tracing:
+    # Enable or disable distributed tracing
+    enabled: true
+    
+    # Sampling configuration
+    sampling:
+      # Probability for sampling traces (0.0 - 1.0)
+      probability: 0.1
+    
+    # Zipkin configuration
+    zipkin:
+      # Enable or disable Zipkin tracing
+      enabled: false
+      # Base URL for Zipkin server
+      base-url: http://localhost:9411
+      # Service name for Zipkin traces
+      service-name: ${spring.application.name:application}
+    
+    # Propagation configuration
+    propagation:
+      # Propagation types to use (B3, W3C, etc.)
+      type:
+        - B3
+        - W3C
+  
+  # Health configuration
+  health:
+    # Whether to show details in health endpoint (never, when-authorized, always)
+    show-details: always
+    # Whether to show components in health endpoint
+    show-components: true
+    
+    # Disk space configuration
+    disk-space:
+      # Enable or disable disk space health check
+      enabled: true
+      # Threshold for disk space health check
+      threshold: 10MB
+      # Path to check for disk space
+      path: .
+
+# Logging configuration for tracing
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-},%X{X-Transaction-Id:-}]"
