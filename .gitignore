@@ -27,3 +27,8 @@ replay_pid*
 .idea/
 *.iml
 out/
+
+# Build directories
+target/
+**/target/
+build/
