@@ -643,6 +643,9 @@ messaging:
   # Default timeout for publishing operations in seconds
   publish-timeout-seconds: 5
 
+  # Application name to use as the source service in message headers
+  application-name: my-service
+
   # Serialization configuration
   serialization:
     # Default serialization format (JSON, AVRO, PROTOBUF, STRING, JAVA)
@@ -685,6 +688,19 @@ messaging:
     region: us-east-1
     access-key-id: ""
     secret-access-key: ""
+
+  # Error handling configuration
+  error-handling:
+    # Default error handler for publishers
+    default-publisher-error-handler: defaultPublishErrorHandler
+    # Default error handler for subscribers
+    default-subscriber-error-handler: defaultEventErrorHandler
+    # Whether to log errors by default
+    log-errors: true
+    # Whether to retry failed operations by default
+    retry-failed-operations: false
+    # Maximum number of retries for failed operations
+    max-retries: 3
 
   # Additional messaging systems configuration...
 ```
@@ -897,7 +913,7 @@ public class OrderService {
             String transactionId = ctx.getOrDefault("X-Transaction-Id", "unknown");
 
             // Log with the transaction ID (it will be automatically included if using MDC)
-            log.info("Processing order {} for customer {}", 
+            log.info("Processing order {} for customer {}",
                     order.getId(), order.getCustomerId());
 
             // Perform business logic
@@ -1128,7 +1144,7 @@ public class CustomWebClientConfig {
 
     /**
      * Create a custom WebClient for a specific service with different settings.
-     * The auto-configured WebClient.Builder ensures that transaction ID propagation 
+     * The auto-configured WebClient.Builder ensures that transaction ID propagation
      * and other common configurations are still applied.
      */
     @Bean
@@ -1241,8 +1257,7 @@ public class OrderService {
      */
     @PublishResult(
         destination = "order-exchange",  // RabbitMQ exchange name
-        routingKey = "order.cancelled",  // RabbitMQ routing key
-        eventType = "order.cancelled",
+        eventType = "order.cancelled",   // For RabbitMQ, this is also used as the routing key
         publisher = PublisherType.RABBITMQ,
         payloadExpression = "{'orderId': #result.id, 'reason': #args[1], 'timestamp': T(java.time.Instant).now().toString()}"
     )
@@ -1269,23 +1284,67 @@ The `@PublishResult` annotation supports various options for customizing the pub
 ```java
 @PublishResult(
     destination = "inventory-events",  // Destination (topic, queue, exchange)
-    routingKey = "inventory.updated",  // Routing key (for RabbitMQ)
     eventType = "inventory.updated",   // Event type identifier
     publisher = PublisherType.KAFKA,   // Messaging system to use
-    condition = "#result != null",     // SpEL condition to determine whether to publish
     payloadExpression = "{'itemId': #result.id, 'quantity': #result.quantity, 'timestamp': T(java.time.Instant).now().toString()}", // Custom payload
-    includeHeaders = true,             // Include headers like transaction ID
-    headerExpressions = {              // Custom headers
-        @HeaderExpression(name = "X-Source-Service", expression = "'inventory-service'"),
-        @HeaderExpression(name = "X-Operation", expression = "'update'")
-    },
-    serializationFormat = SerializationFormat.JSON, // Serialization format
-    errorHandler = "customErrorHandler"  // Bean name of custom error handler
+    includeTransactionId = true,       // Include transaction ID in the message
+    async = true,                      // Publish asynchronously (default)
+    serializationFormat = SerializationFormat.JSON // Serialization format
 )
 public Mono<InventoryItem> updateInventory(String itemId, int quantity) {
     // Method implementation
 }
 ```
+
+The `@PublishResult` annotation also supports these additional advanced options:
+
+- `routingKey` - Custom routing key for RabbitMQ (if not specified, eventType is used)
+- `condition` - SpEL expression to determine whether to publish (e.g., "#result != null")
+- `includeHeaders` - Whether to include standard headers like transaction ID, event type, etc.
+- `headerExpressions` - Custom headers defined using `@HeaderExpression` annotations
+- `errorHandler` - Bean name of a custom `PublishErrorHandler` implementation
+
+Example with advanced options:
+
+```java
+@PublishResult(
+    destination = "inventory-events",
+    eventType = "inventory.updated",
+    publisher = PublisherType.KAFKA,
+    condition = "#result != null && #result.quantity > 0",
+    includeHeaders = true,
+    headerExpressions = {
+        @HeaderExpression(name = "X-Source-Service", expression = "'inventory-service'"),
+        @HeaderExpression(name = "X-Operation", expression = "'update'"),
+        @HeaderExpression(name = "X-Item-Id", expression = "#result.id")
+    },
+    errorHandler = "customPublishErrorHandler"
+)
+public Mono<InventoryItem> updateInventory(String itemId, int quantity) {
+    // Method implementation
+}
+```
+
+Implementing a custom error handler:
+
+```java
+@Component("customPublishErrorHandler")
+public class CustomPublishErrorHandler implements PublishErrorHandler {
+    private static final Logger log = LoggerFactory.getLogger(CustomPublishErrorHandler.class);
+
+    @Override
+    public Mono<Void> handleError(String destination, String eventType, Object payload,
+                                 PublisherType publisherType, Throwable error) {
+        log.error("Failed to publish message to {} with eventType={}: {}",
+                 destination, eventType, error.getMessage(), error);
+
+        // Implement custom error handling logic here
+        // For example, store the failed message for later retry
+
+        // Return empty Mono to continue execution
+        return Mono.empty();
+    }
+}
 
 #### Consuming Events with @EventListener
 
@@ -1338,12 +1397,16 @@ public class NotificationService {
         source = "order-events",  // Kafka topic name
         eventType = "order.status.updated",
         subscriber = SubscriberType.KAFKA,
-        errorHandler = "orderEventErrorHandler"  // Custom error handler
+        serializationFormat = SerializationFormat.JSON, // Serialization format (default)
+        concurrency = 1,                               // Concurrency level (default)
+        autoAck = true,                               // Auto-acknowledge messages (default)
+        groupId = "",                                  // Consumer group ID (optional)
+        clientId = ""                                  // Client ID (optional)
     )
     public void notifyOrderStatusUpdate(Order order, Map<String, Object> headers) {
         // Access event headers including the transaction ID
         String transactionId = (String) headers.get("X-Transaction-Id");
-        log.info("Received order status update event for order: {}, transaction: {}", 
+        log.info("Received order status update event for order: {}, transaction: {}",
                 order.getId(), transactionId);
 
         // Send status update notification
@@ -1362,15 +1425,14 @@ public class NotificationService {
      */
     @EventListener(
         source = "order-exchange",
-        routingKey = "order.cancelled",  // RabbitMQ routing key
-        eventType = "order.cancelled",
+        eventType = "order.cancelled",  // For RabbitMQ, this is also used as the routing key
         subscriber = SubscriberType.RABBITMQ
     )
     public void handleOrderCancellation(Map<String, Object> cancellationInfo) {
         String orderId = (String) cancellationInfo.get("orderId");
         String reason = (String) cancellationInfo.get("reason");
 
-        log.info("Received order cancellation event for order: {}, reason: {}", 
+        log.info("Received order cancellation event for order: {}, reason: {}",
                 orderId, reason);
 
         // Process the cancellation
@@ -1380,6 +1442,97 @@ public class NotificationService {
     }
 }
 ```
+
+The `@EventListener` annotation also supports these additional advanced options:
+
+- `routingKey` - Custom routing key for RabbitMQ (if not specified, eventType is used)
+- `errorHandler` - Bean name of a custom `EventErrorHandler` implementation
+
+Example with advanced options:
+
+```java
+@EventListener(
+    source = "order-exchange",
+    eventType = "order.cancelled",
+    subscriber = SubscriberType.RABBITMQ,
+    routingKey = "order.cancelled.high-priority",
+    errorHandler = "customEventErrorHandler"
+)
+public void handleHighPriorityOrderCancellation(Map<String, Object> cancellationInfo) {
+    // Process high-priority cancellations
+}
+```
+
+Implementing a custom event error handler:
+
+```java
+@Component("customEventErrorHandler")
+public class CustomEventErrorHandler implements EventErrorHandler {
+    private static final Logger log = LoggerFactory.getLogger(CustomEventErrorHandler.class);
+
+    @Override
+    public Mono<Void> handleError(String source, String eventType, Object payload,
+                                 Map<String, Object> headers, SubscriberType subscriberType,
+                                 Throwable error, EventHandler.Acknowledgement acknowledgement) {
+        log.error("Error processing event from {} with eventType={}: {}",
+                 source, eventType, error.getMessage(), error);
+
+        // Implement custom error handling logic here
+        // For example, send the failed event to a dead letter queue
+
+        // Acknowledge the message if auto-ack is disabled
+        if (acknowledgement != null) {
+            return acknowledgement.acknowledge();
+        }
+
+        return Mono.empty();
+    }
+}
+
+#### Custom Headers with HeaderExpression
+
+You can add custom headers to your messages using the `@HeaderExpression` annotation. This allows you to dynamically generate header values using SpEL expressions:
+
+```java
+@PublishResult(
+    destination = "user-events",
+    eventType = "user.created",
+    publisher = PublisherType.KAFKA,
+    headerExpressions = {
+        @HeaderExpression(name = "X-User-Id", expression = "#result.id"),
+        @HeaderExpression(name = "X-User-Email", expression = "#result.email"),
+        @HeaderExpression(name = "X-Creation-Time", expression = "T(java.time.Instant).now().toString()")
+    }
+)
+public User createUser(UserRequest request) {
+    // Method implementation
+    return user;
+}
+```
+
+The SpEL expressions can reference:
+- `#result` - The method's return value
+- `#args` - The method's arguments (e.g., `#args[0]` for the first argument)
+- Static methods - Using the `T()` operator (e.g., `T(java.time.Instant).now()`)
+
+#### Conditional Publishing
+
+You can use the `condition` attribute to conditionally publish messages based on the method's result or arguments:
+
+```java
+@PublishResult(
+    destination = "order-events",
+    eventType = "order.created",
+    publisher = PublisherType.KAFKA,
+    condition = "#result != null && #result.total > 100"
+)
+public Order createOrder(OrderRequest request) {
+    // Only orders with a total greater than 100 will be published
+    return orderService.createOrder(request);
+}
+```
+
+The condition is evaluated using SpEL and can reference the same variables as header expressions.
 
 #### Programmatic Publishing
 
@@ -1413,6 +1566,10 @@ public class InventoryService {
                 MessageHeaders headers = MessageHeaders.builder()
                     .header("X-Product-Id", productId)
                     .header("X-Operation", "adjust")
+                    .transactionId("tx-123")  // Add transaction ID
+                    .eventType("inventory.adjusted")  // Add event type
+                    .sourceService("inventory-service")  // Add source service
+                    .timestamp()  // Add current timestamp
                     .build();
 
                 // Publish the event programmatically
@@ -1837,8 +1994,8 @@ public class ResilientServiceCaller {
     public Mono<ProductDetails> getProductDetails(String productId) {
         // Try to get the service URI from the registry
         Optional<URI> serviceUri = serviceRegistryHelper.getServiceUri(
-            "product-service", 
-            "/products/{id}", 
+            "product-service",
+            "/products/{id}",
             productId
         );
 
@@ -2337,7 +2494,7 @@ public class PaymentService {
 
     public Mono<PaymentResult> processPayment(String orderId, PaymentRequest request) {
         // Create a new span for the payment processing
-        return Mono.fromCallable(() -> 
+        return Mono.fromCallable(() ->
             Observation.createNotStarted("payment.process", observationRegistry)
                 .lowCardinalityKeyValue("orderId", orderId)
                 .lowCardinalityKeyValue("paymentMethod", request.getPaymentMethod())
