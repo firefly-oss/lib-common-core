@@ -115,11 +115,12 @@ public class PublishResultAspect {
             return joinPoint.proceed();
         }
 
-        // Get the publisher
-        EventPublisher publisher = publisherFactory.getPublisher(annotation.publisher());
+        // Get the publisher with the specified connection ID
+        String connectionId = annotation.connectionId();
+        EventPublisher publisher = publisherFactory.getPublisher(annotation.publisher(), connectionId);
         if (publisher == null) {
-            log.warn("No publisher available for type {}. Proceeding with method execution without publishing.",
-                    annotation.publisher());
+            log.warn("No publisher available for type {} with connection ID {}. Proceeding with method execution without publishing.",
+                    annotation.publisher(), connectionId.isEmpty() ? "default" : connectionId);
             return joinPoint.proceed();
         }
 

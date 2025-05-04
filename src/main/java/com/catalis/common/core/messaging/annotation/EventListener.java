@@ -160,4 +160,19 @@ public @interface EventListener {
      * @return the bean name of the error handler
      */
     String errorHandler() default "";
+
+    /**
+     * The connection ID to use for the subscriber.
+     * <p>
+     * This value is used to select a specific connection configuration for the subscriber.
+     * If not specified, the default connection will be used.
+     * <p>
+     * This is useful when you have multiple connections configured for the same subscriber type,
+     * for example, to listen to different Kafka clusters or RabbitMQ servers.
+     * <p>
+     * Example: "prod-cluster" or "eu-west-1"
+     *
+     * @return the connection ID
+     */
+    String connectionId() default "";
 }

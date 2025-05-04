@@ -75,11 +75,13 @@ public class EventListenerProcessor implements BeanPostProcessor, ApplicationCon
             return;
         }
 
-        // Get the subscriber
-        EventSubscriber subscriber = subscriberFactory.getSubscriber(annotation.subscriber());
+        // Get the subscriber with the specified connection ID
+        String connectionId = annotation.connectionId();
+        EventSubscriber subscriber = subscriberFactory.getSubscriber(annotation.subscriber(), connectionId);
         if (subscriber == null) {
-            log.warn("No subscriber available for type {}. Event listener on {}.{} will not be registered.",
-                    annotation.subscriber(), bean.getClass().getSimpleName(), method.getName());
+            log.warn("No subscriber available for type {} with connection ID {}. Event listener on {}.{} will not be registered.",
+                    annotation.subscriber(), connectionId.isEmpty() ? "default" : connectionId,
+                    bean.getClass().getSimpleName(), method.getName());
             return;
         }
 

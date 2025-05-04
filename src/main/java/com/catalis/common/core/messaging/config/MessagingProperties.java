@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Configuration properties for messaging.
@@ -46,44 +47,97 @@ public class MessagingProperties {
     private SerializationConfig serialization = new SerializationConfig();
 
     /**
+     * Default connection ID to use if not specified.
+     */
+    private String defaultConnectionId = "default";
+
+    /**
      * Kafka configuration.
+     * This is the default Kafka configuration (connection ID = "default").
      */
     private KafkaConfig kafka = new KafkaConfig();
 
     /**
+     * Map of Kafka configurations by connection ID.
+     */
+    private Map<String, KafkaConfig> kafkaConnections = new ConcurrentHashMap<>();
+
+    /**
      * RabbitMQ configuration.
+     * This is the default RabbitMQ configuration (connection ID = "default").
      */
     private RabbitMqConfig rabbitmq = new RabbitMqConfig();
 
     /**
+     * Map of RabbitMQ configurations by connection ID.
+     */
+    private Map<String, RabbitMqConfig> rabbitmqConnections = new ConcurrentHashMap<>();
+
+    /**
      * Amazon SQS configuration.
+     * This is the default SQS configuration (connection ID = "default").
      */
     private SqsConfig sqs = new SqsConfig();
 
     /**
+     * Map of SQS configurations by connection ID.
+     */
+    private Map<String, SqsConfig> sqsConnections = new ConcurrentHashMap<>();
+
+    /**
      * Google Cloud Pub/Sub configuration.
+     * This is the default Google Pub/Sub configuration (connection ID = "default").
      */
     private GooglePubSubConfig googlePubSub = new GooglePubSubConfig();
 
     /**
+     * Map of Google Pub/Sub configurations by connection ID.
+     */
+    private Map<String, GooglePubSubConfig> googlePubSubConnections = new ConcurrentHashMap<>();
+
+    /**
      * Azure Service Bus configuration.
+     * This is the default Azure Service Bus configuration (connection ID = "default").
      */
     private AzureServiceBusConfig azureServiceBus = new AzureServiceBusConfig();
 
     /**
+     * Map of Azure Service Bus configurations by connection ID.
+     */
+    private Map<String, AzureServiceBusConfig> azureServiceBusConnections = new ConcurrentHashMap<>();
+
+    /**
      * Redis Pub/Sub configuration.
+     * This is the default Redis configuration (connection ID = "default").
      */
     private RedisConfig redis = new RedisConfig();
 
     /**
+     * Map of Redis configurations by connection ID.
+     */
+    private Map<String, RedisConfig> redisConnections = new ConcurrentHashMap<>();
+
+    /**
      * JMS (ActiveMQ) configuration.
+     * This is the default JMS configuration (connection ID = "default").
      */
     private JmsConfig jms = new JmsConfig();
 
     /**
+     * Map of JMS configurations by connection ID.
+     */
+    private Map<String, JmsConfig> jmsConnections = new ConcurrentHashMap<>();
+
+    /**
      * AWS Kinesis configuration.
+     * This is the default Kinesis configuration (connection ID = "default").
      */
     private KinesisConfig kinesis = new KinesisConfig();
+
+    /**
+     * Map of Kinesis configurations by connection ID.
+     */
+    private Map<String, KinesisConfig> kinesisConnections = new ConcurrentHashMap<>();
 
     /**
      * Kafka configuration properties.
@@ -707,6 +761,126 @@ public class MessagingProperties {
          * Additional properties for Kinesis client.
          */
         private Map<String, String> properties = new HashMap<>();
+    }
+
+    /**
+     * Get Kafka configuration for the specified connection ID.
+     * If the connection ID is null or empty, returns the default configuration.
+     * If the connection ID is not found, returns the default configuration.
+     *
+     * @param connectionId the connection ID
+     * @return the Kafka configuration
+     */
+    public KafkaConfig getKafkaConfig(String connectionId) {
+        if (connectionId == null || connectionId.isEmpty() || connectionId.equals(defaultConnectionId)) {
+            return kafka;
+        }
+        return kafkaConnections.getOrDefault(connectionId, kafka);
+    }
+
+    /**
+     * Get RabbitMQ configuration for the specified connection ID.
+     * If the connection ID is null or empty, returns the default configuration.
+     * If the connection ID is not found, returns the default configuration.
+     *
+     * @param connectionId the connection ID
+     * @return the RabbitMQ configuration
+     */
+    public RabbitMqConfig getRabbitMqConfig(String connectionId) {
+        if (connectionId == null || connectionId.isEmpty() || connectionId.equals(defaultConnectionId)) {
+            return rabbitmq;
+        }
+        return rabbitmqConnections.getOrDefault(connectionId, rabbitmq);
+    }
+
+    /**
+     * Get SQS configuration for the specified connection ID.
+     * If the connection ID is null or empty, returns the default configuration.
+     * If the connection ID is not found, returns the default configuration.
+     *
+     * @param connectionId the connection ID
+     * @return the SQS configuration
+     */
+    public SqsConfig getSqsConfig(String connectionId) {
+        if (connectionId == null || connectionId.isEmpty() || connectionId.equals(defaultConnectionId)) {
+            return sqs;
+        }
+        return sqsConnections.getOrDefault(connectionId, sqs);
+    }
+
+    /**
+     * Get Google Pub/Sub configuration for the specified connection ID.
+     * If the connection ID is null or empty, returns the default configuration.
+     * If the connection ID is not found, returns the default configuration.
+     *
+     * @param connectionId the connection ID
+     * @return the Google Pub/Sub configuration
+     */
+    public GooglePubSubConfig getGooglePubSubConfig(String connectionId) {
+        if (connectionId == null || connectionId.isEmpty() || connectionId.equals(defaultConnectionId)) {
+            return googlePubSub;
+        }
+        return googlePubSubConnections.getOrDefault(connectionId, googlePubSub);
+    }
+
+    /**
+     * Get Azure Service Bus configuration for the specified connection ID.
+     * If the connection ID is null or empty, returns the default configuration.
+     * If the connection ID is not found, returns the default configuration.
+     *
+     * @param connectionId the connection ID
+     * @return the Azure Service Bus configuration
+     */
+    public AzureServiceBusConfig getAzureServiceBusConfig(String connectionId) {
+        if (connectionId == null || connectionId.isEmpty() || connectionId.equals(defaultConnectionId)) {
+            return azureServiceBus;
+        }
+        return azureServiceBusConnections.getOrDefault(connectionId, azureServiceBus);
+    }
+
+    /**
+     * Get Redis configuration for the specified connection ID.
+     * If the connection ID is null or empty, returns the default configuration.
+     * If the connection ID is not found, returns the default configuration.
+     *
+     * @param connectionId the connection ID
+     * @return the Redis configuration
+     */
+    public RedisConfig getRedisConfig(String connectionId) {
+        if (connectionId == null || connectionId.isEmpty() || connectionId.equals(defaultConnectionId)) {
+            return redis;
+        }
+        return redisConnections.getOrDefault(connectionId, redis);
+    }
+
+    /**
+     * Get JMS configuration for the specified connection ID.
+     * If the connection ID is null or empty, returns the default configuration.
+     * If the connection ID is not found, returns the default configuration.
+     *
+     * @param connectionId the connection ID
+     * @return the JMS configuration
+     */
+    public JmsConfig getJmsConfig(String connectionId) {
+        if (connectionId == null || connectionId.isEmpty() || connectionId.equals(defaultConnectionId)) {
+            return jms;
+        }
+        return jmsConnections.getOrDefault(connectionId, jms);
+    }
+
+    /**
+     * Get Kinesis configuration for the specified connection ID.
+     * If the connection ID is null or empty, returns the default configuration.
+     * If the connection ID is not found, returns the default configuration.
+     *
+     * @param connectionId the connection ID
+     * @return the Kinesis configuration
+     */
+    public KinesisConfig getKinesisConfig(String connectionId) {
+        if (connectionId == null || connectionId.isEmpty() || connectionId.equals(defaultConnectionId)) {
+            return kinesis;
+        }
+        return kinesisConnections.getOrDefault(connectionId, kinesis);
     }
 
     /**
