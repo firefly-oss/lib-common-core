@@ -1,5 +1,7 @@
 package com.catalis.common.core.messaging.publisher;
 
+import com.catalis.common.core.messaging.config.MessagingProperties;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -13,9 +15,14 @@ import reactor.test.StepVerifier;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class KafkaEventPublisherTest {
 
     @Mock
@@ -24,8 +31,20 @@ public class KafkaEventPublisherTest {
     @Mock
     private KafkaTemplate<String, Object> kafkaTemplate;
 
+    @Mock
+    private MessagingProperties messagingProperties;
+
+    @Mock
+    private MessagingProperties.KafkaConfig kafkaConfig;
+
     @InjectMocks
     private KafkaEventPublisher publisher;
+
+    @BeforeEach
+    void setUp() {
+        when(messagingProperties.getKafkaConfig(anyString())).thenReturn(kafkaConfig);
+        when(kafkaConfig.isEnabled()).thenReturn(true);
+    }
 
     @Test
     void shouldPublishEvent() {

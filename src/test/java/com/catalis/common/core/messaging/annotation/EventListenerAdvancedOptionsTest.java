@@ -62,7 +62,7 @@ class EventListenerAdvancedOptionsTest {
         testEventHandler = new TestEventHandler();
 
         // Configure the mocks with lenient() to avoid unnecessary stubbing exceptions
-        lenient().when(subscriberFactory.getSubscriber(any(SubscriberType.class))).thenReturn(eventSubscriber);
+        lenient().when(subscriberFactory.getSubscriber(any(SubscriberType.class), anyString())).thenReturn(eventSubscriber);
         lenient().when(serializerFactory.getSerializer(any(SerializationFormat.class))).thenReturn(serializer);
         lenient().when(eventSubscriber.subscribe(anyString(), anyString(), any(EventHandler.class), anyString(), anyString(), anyInt(), anyBoolean()))
                 .thenReturn(Mono.empty());
@@ -81,7 +81,7 @@ class EventListenerAdvancedOptionsTest {
         processor.postProcessAfterInitialization(testEventHandler, "testEventHandler");
 
         // Then
-        verify(subscriberFactory).getSubscriber(SubscriberType.KAFKA);
+        verify(subscriberFactory).getSubscriber(eq(SubscriberType.KAFKA), anyString());
         verify(eventSubscriber).subscribe(
                 eq("test-topic"),
                 eq("test.event"),
@@ -96,7 +96,7 @@ class EventListenerAdvancedOptionsTest {
     @Test
     void shouldUseRoutingKeyForRabbitMQ() {
         // Given
-        when(subscriberFactory.getSubscriber(eq(SubscriberType.RABBITMQ))).thenReturn(eventSubscriber);
+        when(subscriberFactory.getSubscriber(eq(SubscriberType.RABBITMQ), anyString())).thenReturn(eventSubscriber);
 
         // Enable messaging and RabbitMQ
         messagingProperties.setEnabled(true);
@@ -106,7 +106,7 @@ class EventListenerAdvancedOptionsTest {
         processor.postProcessAfterInitialization(new RabbitMQEventHandler(), "rabbitMQEventHandler");
 
         // Then
-        verify(subscriberFactory).getSubscriber(SubscriberType.RABBITMQ);
+        verify(subscriberFactory).getSubscriber(eq(SubscriberType.RABBITMQ), anyString());
         verify(eventSubscriber).subscribe(
                 eq("test-exchange"),
                 eq("test.event"),

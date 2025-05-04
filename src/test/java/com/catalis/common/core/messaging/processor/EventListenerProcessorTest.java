@@ -66,10 +66,10 @@ public class EventListenerProcessorTest {
         lenient().when(serializerFactory.getSerializer(any(SerializationFormat.class))).thenReturn(jsonSerializer);
 
         // Configure subscriber factory
-        lenient().when(subscriberFactory.getSubscriber(any(SubscriberType.class))).thenReturn(eventSubscriber);
+        lenient().when(subscriberFactory.getSubscriber(any(SubscriberType.class), anyString())).thenReturn(eventSubscriber);
 
         // Configure event subscriber
-        lenient().when(eventSubscriber.subscribe(anyString(), anyString(), any(EventHandler.class), 
+        lenient().when(eventSubscriber.subscribe(anyString(), anyString(), any(EventHandler.class),
                 anyString(), anyString(), anyInt(), anyBoolean()))
                 .thenReturn(Mono.empty());
     }
@@ -80,7 +80,7 @@ public class EventListenerProcessorTest {
         processor.postProcessAfterInitialization(testEventHandler, "testEventHandler");
 
         // Then
-        verify(subscriberFactory).getSubscriber(SubscriberType.KAFKA);
+        verify(subscriberFactory).getSubscriber(eq(SubscriberType.KAFKA), anyString());
         verify(eventSubscriber).subscribe(
                 eq("test-topic"),
                 eq("test.event"),
@@ -139,13 +139,13 @@ public class EventListenerProcessorTest {
     @Test
     void shouldNotRegisterEventListenerWhenNoSubscriberIsAvailable() {
         // Given
-        when(subscriberFactory.getSubscriber(any(SubscriberType.class))).thenReturn(null);
+        when(subscriberFactory.getSubscriber(any(SubscriberType.class), anyString())).thenReturn(null);
 
         // When
         processor.postProcessAfterInitialization(testEventHandler, "testEventHandler");
 
         // Then
-        verify(subscriberFactory).getSubscriber(any());
+        verify(subscriberFactory).getSubscriber(any(), anyString());
         verify(eventSubscriber, never()).subscribe(
                 anyString(),
                 anyString(),

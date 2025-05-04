@@ -1,6 +1,7 @@
 package com.catalis.common.core.messaging.subscriber;
 
 import com.catalis.common.core.messaging.annotation.SubscriberType;
+import com.catalis.common.core.messaging.config.MessagingProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,6 +50,9 @@ public class SubscriberFactoryTest {
     @Mock
     private com.catalis.common.core.messaging.resilience.ResilientEventSubscriberFactory resilientFactory;
 
+    @Mock
+    private MessagingProperties messagingProperties;
+
     private SubscriberFactory factory;
 
     @BeforeEach
@@ -65,7 +69,7 @@ public class SubscriberFactoryTest {
                 kinesisEventSubscriber
         );
 
-        factory = new SubscriberFactory(subscribers, resilientFactory);
+        factory = new SubscriberFactory(subscribers, resilientFactory, messagingProperties);
 
         // Mock the resilient factory to return the original subscriber
         lenient().when(resilientFactory.createResilientSubscriber(any(EventSubscriber.class), anyString()))

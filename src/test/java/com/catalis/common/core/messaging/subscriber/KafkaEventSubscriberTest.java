@@ -65,6 +65,8 @@ public class KafkaEventSubscriberTest {
     @BeforeEach
     void setUp() {
         lenient().when(messagingProperties.getKafka()).thenReturn(kafkaConfig);
+        lenient().when(messagingProperties.getKafkaConfig(anyString())).thenReturn(kafkaConfig);
+        lenient().when(kafkaConfig.isEnabled()).thenReturn(true);
         lenient().when(kafkaTemplateProvider.getIfAvailable()).thenReturn(kafkaTemplate);
         lenient().when(kafkaListenerEndpointRegistryProvider.getIfAvailable()).thenReturn(kafkaListenerEndpointRegistry);
         lenient().when(eventHandler.handleEvent(any(), anyMap(), any())).thenReturn(Mono.empty());

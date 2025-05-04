@@ -72,7 +72,7 @@ public class PublishResultAspectTest {
         lenient().when(messagingProperties.isEnabled()).thenReturn(true);
 
         // Mock the publisher factory and publisher
-        lenient().when(publisherFactory.getPublisher(any(PublisherType.class))).thenReturn(eventPublisher);
+        lenient().when(publisherFactory.getPublisher(any(PublisherType.class), anyString())).thenReturn(eventPublisher);
         lenient().when(eventPublisher.publish(anyString(), anyString(), any(), any())).thenReturn(Mono.empty());
         lenient().when(eventPublisher.publish(anyString(), anyString(), any(), any(), any(com.catalis.common.core.messaging.serialization.MessageSerializer.class))).thenReturn(Mono.empty());
 
@@ -115,7 +115,7 @@ public class PublishResultAspectTest {
     @Test
     void shouldNotPublishWhenPublisherIsNotAvailable() throws Throwable {
         // Given
-        when(publisherFactory.getPublisher(any(PublisherType.class))).thenReturn(null);
+        when(publisherFactory.getPublisher(any(PublisherType.class), anyString())).thenReturn(null);
         when(joinPoint.proceed()).thenReturn("test result");
 
         // When
@@ -137,7 +137,7 @@ public class PublishResultAspectTest {
 
         // Then
         assertEquals(expectedResult, result);
-        verify(publisherFactory).getPublisher(eq(PublisherType.KAFKA));
+        verify(publisherFactory).getPublisher(eq(PublisherType.KAFKA), anyString());
         // Note: The aspect has a bug where it doesn't subscribe to the Mono returned by publishResultObject
         // for synchronous results, so the publish method is never called. We're not verifying that interaction.
         // In a real implementation, this line should be uncommented:
@@ -158,7 +158,7 @@ public class PublishResultAspectTest {
                 .expectNextMatches(value -> "test result".equals(value))
                 .verifyComplete();
 
-        verify(publisherFactory).getPublisher(eq(PublisherType.KAFKA));
+        verify(publisherFactory).getPublisher(eq(PublisherType.KAFKA), anyString());
         verify(eventPublisher).publish(eq("test-topic"), eq("test.event"), eq("test result"), any(), any(com.catalis.common.core.messaging.serialization.MessageSerializer.class));
     }
 

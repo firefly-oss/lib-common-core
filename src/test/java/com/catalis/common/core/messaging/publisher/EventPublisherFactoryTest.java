@@ -1,6 +1,7 @@
 package com.catalis.common.core.messaging.publisher;
 
 import com.catalis.common.core.messaging.annotation.PublisherType;
+import com.catalis.common.core.messaging.config.MessagingProperties;
 import com.catalis.common.core.messaging.resilience.ResilientEventPublisherFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,9 @@ public class EventPublisherFactoryTest {
     @Mock
     private ResilientEventPublisherFactory resilientFactory;
 
+    @Mock
+    private MessagingProperties messagingProperties;
+
     @InjectMocks
     private EventPublisherFactory factory;
 
@@ -72,6 +76,9 @@ public class EventPublisherFactoryTest {
             java.lang.reflect.Field publishersField = EventPublisherFactory.class.getDeclaredField("publishers");
             publishersField.setAccessible(true);
             publishersField.set(factory, publishers);
+
+            // Mock default connection ID
+            when(messagingProperties.getDefaultConnectionId()).thenReturn("default");
         } catch (Exception e) {
             throw new RuntimeException("Failed to set publishers field", e);
         }
