@@ -294,9 +294,114 @@ To use multiple connections:
 
 If no connection ID is specified in the annotation, the default connection (configured directly under `kafka`, `rabbitmq`, etc.) will be used.
 
+#### Example Configuration for Multiple Connections
+
 ```yaml
 messaging:
-  # Enable or disable all messaging functionality (default: false)
+  enabled: true
+  default-connection-id: default
+
+  # Default Kafka configuration (connection ID = "default")
+  kafka:
+    enabled: true
+    default-topic: events
+    bootstrap-servers: localhost:9092
+
+  # Multiple Kafka connections
+  kafka-connections:
+    # Production Kafka cluster
+    prod-cluster:
+      enabled: true
+      default-topic: prod-events
+      bootstrap-servers: prod-kafka1:9092,prod-kafka2:9092
+      security-protocol: SASL_SSL
+      sasl-mechanism: PLAIN
+      sasl-username: "prod-user"
+      sasl-password: "prod-password"
+
+    # Development Kafka cluster
+    dev-cluster:
+      enabled: true
+      default-topic: dev-events
+      bootstrap-servers: dev-kafka:9092
+
+  # Default RabbitMQ configuration (connection ID = "default")
+  rabbitmq:
+    enabled: true
+    default-exchange: events
+    host: localhost
+    port: 5672
+
+  # Multiple RabbitMQ connections
+  rabbitmq-connections:
+    # Production RabbitMQ server
+    prod-server:
+      enabled: true
+      default-exchange: prod-events
+      host: prod-rabbitmq.example.com
+      port: 5672
+      username: prod-user
+      password: prod-password
+```
+
+#### Using Multiple Connections in Code
+
+In your code, you can specify which connection to use by setting the `connectionId` parameter in the annotation:
+
+```java
+// Publishing to the production Kafka cluster
+@PublishResult(
+    destination = "user-events",
+    eventType = "user.created",
+    publisher = PublisherType.KAFKA,
+    connectionId = "prod-cluster"
+)
+public User createUserInProd(UserRequest request) {
+    // Method implementation
+    return user;
+}
+
+// Publishing to the development Kafka cluster
+@PublishResult(
+    destination = "user-events",
+    eventType = "user.created",
+    publisher = PublisherType.KAFKA,
+    connectionId = "dev-cluster"
+)
+public User createUserInDev(UserRequest request) {
+    // Method implementation
+    return user;
+}
+```
+
+Similarly, for event listeners:
+
+```java
+// Listening to events from the production Kafka cluster
+@EventListener(
+    source = "user-events",
+    eventType = "user.created",
+    subscriber = SubscriberType.KAFKA,
+    connectionId = "prod-cluster"
+)
+public void handleUserCreatedInProd(User user) {
+    // Handle user created event from production
+}
+
+// Listening to events from the development Kafka cluster
+@EventListener(
+    source = "user-events",
+    eventType = "user.created",
+    subscriber = SubscriberType.KAFKA,
+    connectionId = "dev-cluster"
+)
+public void handleUserCreatedInDev(User user) {
+    // Handle user created event from development
+}
+```
+
+```yaml
+messaging:
   enabled: true
 
   # Enable or disable resilience features (circuit breaker, retry, metrics)
