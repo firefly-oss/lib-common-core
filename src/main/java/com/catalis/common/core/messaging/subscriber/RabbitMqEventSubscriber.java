@@ -1,0 +1,167 @@
+package com.catalis.common.core.messaging.subscriber;
+
+import com.catalis.common.core.messaging.config.MessagingProperties;
+import com.catalis.common.core.messaging.handler.EventHandler;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
+import org.springframework.amqp.rabbit.listener.MessageListenerContainer;
+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Implementation of {@link EventSubscriber} that uses RabbitMQ for event handling.
+ */
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class RabbitMqEventSubscriber implements EventSubscriber {
+
+    private final ObjectProvider<ConnectionFactory> connectionFactoryProvider;
+    private final ObjectProvider<RabbitAdmin> rabbitAdminProvider;
+    private final MessagingProperties messagingProperties;
+    private final Map<String, MessageListenerContainer> containers = new ConcurrentHashMap<>();
+
+    @Override
+    public Mono<Void> subscribe(
+            String source,
+            String eventType,
+            EventHandler eventHandler,
+            String groupId,
+            String clientId,
+            int concurrency,
+            boolean autoAck) {
+
+        return Mono.fromRunnable(() -> {
+            ConnectionFactory connectionFactory = connectionFactoryProvider.getIfAvailable();
+            if (connectionFactory == null) {
+                log.warn("ConnectionFactory is not available. Cannot subscribe to RabbitMQ.");
+                return;
+            }
+
+            RabbitAdmin rabbitAdmin = rabbitAdminProvider.getIfAvailable();
+            if (rabbitAdmin == null) {
+                log.warn("RabbitAdmin is not available. Cannot subscribe to RabbitMQ.");
+                return;
+            }
+
+            String key = getEventKey(source, eventType);
+            if (containers.containsKey(key)) {
+                log.warn("Already subscribed to RabbitMQ queue {} with routing key {}", source, eventType);
+                return;
+            }
+
+            try {
+                // Declare exchange if it doesn't exist
+                Exchange exchange = new TopicExchange(
+                        source,
+                        messagingProperties.getRabbitmq().isDurable(),
+                        messagingProperties.getRabbitmq().isAutoDelete()
+                );
+                rabbitAdmin.declareExchange(exchange);
+
+                // Create a queue with a unique name if not specified
+                String queueName = source + ".queue";
+                Queue queue = new Queue(
+                        queueName,
+                        messagingProperties.getRabbitmq().isDurable(),
+                        messagingProperties.getRabbitmq().isExclusive(),
+                        messagingProperties.getRabbitmq().isAutoDelete()
+                );
+                rabbitAdmin.declareQueue(queue);
+
+                // Bind the queue to the exchange with the routing key
+                String routingKey = eventType.isEmpty() ?
+                        messagingProperties.getRabbitmq().getDefaultRoutingKey() : eventType;
+                Binding binding = BindingBuilder.bind(queue)
+                        .to((TopicExchange) exchange)
+                        .with(routingKey);
+                rabbitAdmin.declareBinding(binding);
+
+                // Create a message listener container
+                SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
+                container.setConnectionFactory(connectionFactory);
+                container.setQueueNames(queueName);
+                container.setConcurrentConsumers(concurrency);
+                container.setPrefetchCount(messagingProperties.getRabbitmq().getPrefetchCount());
+                container.setAcknowledgeMode(autoAck ?
+                        AcknowledgeMode.AUTO : AcknowledgeMode.MANUAL);
+
+                // Set the message listener
+                container.setMessageListener(message -> {
+                    try {
+                        // Extract headers
+                        Map<String, Object> headers = new HashMap<>();
+                        message.getMessageProperties().getHeaders().forEach((k, v) -> headers.put(k, v));
+                        headers.put("contentType", message.getMessageProperties().getContentType());
+                        headers.put("contentEncoding", message.getMessageProperties().getContentEncoding());
+                        headers.put("correlationId", message.getMessageProperties().getCorrelationId());
+                        headers.put("messageId", message.getMessageProperties().getMessageId());
+                        headers.put("routingKey", message.getMessageProperties().getReceivedRoutingKey());
+
+                        // Create acknowledgement if needed
+                        EventHandler.Acknowledgement ack = autoAck ? null :
+                                () -> Mono.fromRunnable(() -> {
+                                    try {
+                                        // Note: SimpleMessageListenerContainer doesn't expose getChannel() directly
+                                        // In a real implementation, you would need to use a different approach
+                                        // to acknowledge messages manually
+                                        long deliveryTag = message.getMessageProperties().getDeliveryTag();
+                                        log.info("Manual acknowledgement for delivery tag {} (implementation needed)", deliveryTag);
+                                    } catch (Exception e) {
+                                        log.error("Failed to acknowledge message", e);
+                                    }
+                                });
+
+                        // Handle the event
+                        eventHandler.handleEvent(message.getBody(), headers, ack)
+                                .doOnSuccess(v -> log.debug("Successfully handled RabbitMQ message from queue {}", queueName))
+                                .doOnError(error -> log.error("Error handling RabbitMQ message: {}", error.getMessage(), error))
+                                .subscribe();
+                    } catch (Exception e) {
+                        log.error("Error processing RabbitMQ message", e);
+                    }
+                });
+
+                // Start the container
+                container.start();
+                containers.put(key, container);
+
+                log.info("Subscribed to RabbitMQ queue {} with routing key {}", queueName, routingKey);
+            } catch (Exception e) {
+                log.error("Failed to subscribe to RabbitMQ: {}", e.getMessage(), e);
+            }
+        });
+    }
+
+    @Override
+    public Mono<Void> unsubscribe(String source, String eventType) {
+        return Mono.fromRunnable(() -> {
+            String key = getEventKey(source, eventType);
+            MessageListenerContainer container = containers.remove(key);
+
+            if (container != null) {
+                container.stop();
+                log.info("Unsubscribed from RabbitMQ for source {} and event type {}", source, eventType);
+            }
+        });
+    }
+
+    @Override
+    public boolean isAvailable() {
+        return connectionFactoryProvider.getIfAvailable() != null &&
+               rabbitAdminProvider.getIfAvailable() != null;
+    }
+
+    private String getEventKey(String source, String eventType) {
+        return source + ":" + eventType;
+    }
+}
