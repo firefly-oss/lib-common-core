@@ -1,6 +1,7 @@
 package com.catalis.common.core.messaging.resilience;
 
 import com.catalis.common.core.messaging.handler.EventHandler;
+import com.catalis.common.core.messaging.subscriber.ConnectionAwareSubscriber;
 import com.catalis.common.core.messaging.subscriber.EventSubscriber;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -22,7 +23,7 @@ import java.util.concurrent.TimeoutException;
  * circuit breaker, retry, timeout, and metrics.
  */
 @Slf4j
-public class ResilientEventSubscriber implements EventSubscriber {
+public class ResilientEventSubscriber implements EventSubscriber, ConnectionAwareSubscriber {
 
     private final EventSubscriber delegate;
     private final CircuitBreaker circuitBreaker;
@@ -135,5 +136,24 @@ public class ResilientEventSubscriber implements EventSubscriber {
     @Override
     public boolean isAvailable() {
         return delegate.isAvailable() && circuitBreaker.getState() != CircuitBreaker.State.OPEN;
+    }
+
+    @Override
+    public void setConnectionId(String connectionId) {
+        if (delegate instanceof ConnectionAwareSubscriber) {
+            ((ConnectionAwareSubscriber) delegate).setConnectionId(connectionId);
+        } else {
+            log.warn("Delegate subscriber does not implement ConnectionAwareSubscriber, connectionId will be ignored");
+        }
+    }
+
+    @Override
+    public String getConnectionId() {
+        if (delegate instanceof ConnectionAwareSubscriber) {
+            return ((ConnectionAwareSubscriber) delegate).getConnectionId();
+        } else {
+            log.warn("Delegate subscriber does not implement ConnectionAwareSubscriber, returning default connectionId");
+            return "default";
+        }
     }
 }

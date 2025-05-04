@@ -1,5 +1,6 @@
 package com.catalis.common.core.messaging.resilience;
 
+import com.catalis.common.core.messaging.publisher.ConnectionAwarePublisher;
 import com.catalis.common.core.messaging.publisher.EventPublisher;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -42,7 +43,7 @@ import java.util.concurrent.TimeoutException;
  * @see io.micrometer.core.instrument.MeterRegistry
  */
 @Slf4j
-public class ResilientEventPublisher implements EventPublisher {
+public class ResilientEventPublisher implements EventPublisher, ConnectionAwarePublisher {
 
     private final EventPublisher delegate;
     private final CircuitBreaker circuitBreaker;
@@ -106,5 +107,24 @@ public class ResilientEventPublisher implements EventPublisher {
     @Override
     public boolean isAvailable() {
         return delegate.isAvailable() && circuitBreaker.getState() != CircuitBreaker.State.OPEN;
+    }
+
+    @Override
+    public void setConnectionId(String connectionId) {
+        if (delegate instanceof ConnectionAwarePublisher) {
+            ((ConnectionAwarePublisher) delegate).setConnectionId(connectionId);
+        } else {
+            log.warn("Delegate publisher does not implement ConnectionAwarePublisher, connectionId will be ignored");
+        }
+    }
+
+    @Override
+    public String getConnectionId() {
+        if (delegate instanceof ConnectionAwarePublisher) {
+            return ((ConnectionAwarePublisher) delegate).getConnectionId();
+        } else {
+            log.warn("Delegate publisher does not implement ConnectionAwarePublisher, returning default connectionId");
+            return "default";
+        }
     }
 }
