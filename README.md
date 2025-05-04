@@ -602,12 +602,17 @@ You can customize the auto-configuration behavior in several ways:
 
 ### WebClient Properties
 
-You can configure the WebClient by adding properties to your `application.yml` or `application.properties` file:
+You can configure the WebClient by adding properties to your `application.yml` or `application.properties` file. The library provides comprehensive configuration options for WebClient, including basic settings, SSL/TLS, proxy, connection pooling, HTTP/2, and codec configuration.
+
+#### Basic Configuration
 
 ```yaml
 webclient:
-  enabled: true  # Enable or disable WebClient auto-configuration
-  skip-headers:  # Headers that should not be propagated
+  # Enable or disable WebClient auto-configuration
+  enabled: true
+
+  # Headers that should not be propagated
+  skip-headers:
     - connection
     - keep-alive
     - proxy-authenticate
@@ -616,17 +621,186 @@ webclient:
     - trailer
     - transfer-encoding
     - upgrade
+
+  # Timeout settings
   connect-timeout-ms: 5000  # Connection timeout in milliseconds
   read-timeout-ms: 10000    # Read timeout in milliseconds
   write-timeout-ms: 10000   # Write timeout in milliseconds
-  max-in-memory-size: 16777216  # Maximum size of in-memory buffer in bytes
-  retry:
-    enabled: true           # Enable retry for WebClient requests
-    max-attempts: 3         # Maximum number of retry attempts
-    initial-backoff-ms: 1000  # Initial backoff interval in milliseconds
-    max-backoff-ms: 5000    # Maximum backoff interval in milliseconds
-    backoff-multiplier: 2.0  # Backoff interval multiplier
+
+  # Maximum size of in-memory buffer in bytes (16MB)
+  max-in-memory-size: 16777216
 ```
+
+#### SSL/TLS Configuration
+
+```yaml
+webclient:
+  ssl:
+    # Enable or disable SSL/TLS
+    enabled: true
+
+    # Whether to use the default SSL context
+    use-default-ssl-context: false
+
+    # Trust store configuration
+    trust-store-path: "path/to/truststore.jks"
+    trust-store-password: "truststore-password"
+    trust-store-type: "JKS"
+
+    # Key store configuration
+    key-store-path: "path/to/keystore.jks"
+    key-store-password: "keystore-password"
+    key-store-type: "JKS"
+
+    # Whether to verify hostname
+    verify-hostname: true
+
+    # Protocols to enable
+    enabled-protocols:
+      - TLSv1.2
+      - TLSv1.3
+
+    # Cipher suites to enable
+    enabled-cipher-suites:
+      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+```
+
+#### Proxy Configuration
+
+```yaml
+webclient:
+  proxy:
+    # Enable or disable proxy
+    enabled: true
+
+    # Proxy type (HTTP, SOCKS4, SOCKS5)
+    type: "HTTP"
+
+    # Proxy host and port
+    host: "proxy.example.com"
+    port: 8080
+
+    # Proxy authentication
+    username: "proxyuser"
+    password: "proxypass"
+
+    # Non-proxy hosts (hosts that should bypass the proxy)
+    non-proxy-hosts:
+      - localhost
+      - 127.0.0.1
+      - internal.example.com
+```
+
+#### Connection Pool Configuration
+
+```yaml
+webclient:
+  connection-pool:
+    # Enable or disable connection pooling
+    enabled: true
+
+    # Maximum number of connections
+    max-connections: 500
+
+    # Maximum number of pending acquires
+    max-pending-acquires: 1000
+
+    # Maximum idle time in milliseconds
+    max-idle-time-ms: 30000
+
+    # Maximum life time in milliseconds
+    max-life-time-ms: 60000
+
+    # Whether to enable metrics
+    metrics-enabled: true
+```
+
+#### HTTP/2 Configuration
+
+```yaml
+webclient:
+  http2:
+    # Enable or disable HTTP/2
+    enabled: true
+
+    # Maximum concurrent streams
+    max-concurrent-streams: 100
+
+    # Initial window size
+    initial-window-size: 1048576
+```
+
+#### Codec Configuration
+
+```yaml
+webclient:
+  codec:
+    # Enable or disable custom codec configuration
+    enabled: true
+
+    # Maximum in memory size for codecs (16MB)
+    max-in-memory-size: 16777216
+
+    # Whether to enable logging of form data
+    enable-logging-form-data: false
+
+    # Jackson configuration properties
+    jackson-properties:
+      default-typing: false
+      ignore-unknown-properties: true
+```
+
+#### Resilience Configuration
+
+```yaml
+webclient.resilience:
+  # Enable or disable resilience patterns
+  enabled: true
+
+  # Circuit breaker configuration
+  circuit-breaker:
+    # Failure rate threshold in percentage above which the circuit breaker should trip open
+    failure-rate-threshold: 50
+
+    # Duration the circuit breaker should stay open before switching to half-open (in milliseconds)
+    wait-duration-in-open-state-ms: 10000
+
+    # Number of permitted calls when the circuit breaker is half-open
+    permitted-number-of-calls-in-half-open-state: 5
+
+    # Size of the sliding window used to record the outcome of calls when the circuit breaker is closed
+    sliding-window-size: 10
+
+  # Retry configuration
+  retry:
+    # Maximum number of retry attempts
+    max-attempts: 3
+
+    # Initial backoff duration in milliseconds
+    initial-backoff-ms: 500
+
+    # Maximum backoff duration in milliseconds
+    max-backoff-ms: 5000
+
+    # Backoff multiplier for exponential backoff
+    backoff-multiplier: 2.0
+
+  # Timeout configuration
+  timeout:
+    # Timeout duration in milliseconds
+    timeout-ms: 5000
+
+  # Bulkhead configuration
+  bulkhead:
+    # Maximum number of concurrent calls permitted
+    max-concurrent-calls: 25
+
+    # Maximum amount of time a thread should wait to enter a bulkhead (in milliseconds)
+    max-wait-duration-ms: 0
+```
+
+You can find a complete example configuration in the `application-webclient-example.yml` file included with the library.
 
 ### Messaging Properties
 
@@ -1132,7 +1306,7 @@ public class CustomerService {
 
 #### Advanced WebClient Configuration
 
-If you need to customize the WebClient beyond the default configuration:
+If you need to customize the WebClient beyond the default configuration, you can use the auto-configured `WebClient.Builder` bean which already includes all the advanced configuration options and transaction ID propagation:
 
 ```java
 import org.springframework.context.annotation.Bean;
@@ -1148,12 +1322,67 @@ public class CustomWebClientConfig {
      * and other common configurations are still applied.
      */
     @Bean
-    public WebClient paymentServiceWebClient() {
-        // Get the auto-configured builder from the library
-        return WebClient.builder()
+    public WebClient paymentServiceWebClient(WebClient.Builder webClientBuilder) {
+        // Use the auto-configured builder from the library
+        return webClientBuilder
                 .baseUrl("https://payment-service")
                 .defaultHeader("API-Key", "your-api-key")
                 .defaultHeader("Service-Client", "customer-service")
+                .build();
+    }
+}
+```
+
+You can also create a completely custom WebClient with specific advanced configuration options:
+
+```java
+import io.netty.handler.ssl.SslContextBuilder;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.transport.ProxyProvider;
+
+import java.time.Duration;
+
+@Configuration
+public class CustomAdvancedWebClientConfig {
+
+    /**
+     * Create a custom WebClient with advanced configuration options.
+     */
+    @Bean
+    public WebClient customWebClient() {
+        // Configure HTTP client with advanced options
+        HttpClient httpClient = HttpClient.create()
+                // Configure connection timeout
+                .responseTimeout(Duration.ofSeconds(10))
+
+                // Configure SSL
+                .secure(sslContextSpec -> sslContextSpec
+                        .sslContext(SslContextBuilder.forClient()
+                                .trustManager(new File("path/to/truststore.jks"))
+                                .build())
+                )
+
+                // Configure proxy
+                .proxy(proxySpec -> proxySpec
+                        .type(ProxyProvider.Proxy.HTTP)
+                        .host("proxy.example.com")
+                        .port(8080)
+                        .username("proxyuser")
+                        .password(s -> "proxypass")
+                )
+
+                // Configure HTTP/2
+                .protocol(HttpProtocol.H2, HttpProtocol.HTTP11);
+
+        // Create WebClient with the configured HTTP client
+        return WebClient.builder()
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .baseUrl("https://api.example.com")
+                .defaultHeader("User-Agent", "MyApp/1.0")
                 .build();
     }
 }
