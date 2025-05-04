@@ -1,0 +1,45 @@
+package com.catalis.common.core.messaging.resilience;
+
+import com.catalis.common.core.messaging.config.MessagingProperties;
+import com.catalis.common.core.messaging.publisher.EventPublisher;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.retry.RetryRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.stereotype.Component;
+
+/**
+ * Factory for creating resilient event publishers.
+ */
+@Component
+@RequiredArgsConstructor
+public class ResilientEventPublisherFactory {
+    
+    private final CircuitBreakerRegistry circuitBreakerRegistry;
+    private final RetryRegistry retryRegistry;
+    private final ObjectProvider<MeterRegistry> meterRegistryProvider;
+    private final MessagingProperties messagingProperties;
+    
+    /**
+     * Creates a resilient event publisher that wraps the given publisher.
+     *
+     * @param publisher the publisher to wrap
+     * @param publisherName the name of the publisher
+     * @return a resilient event publisher
+     */
+    public EventPublisher createResilientPublisher(EventPublisher publisher, String publisherName) {
+        // Only wrap the publisher if resilience is enabled
+        if (messagingProperties.isResilience()) {
+            return new ResilientEventPublisher(
+                    publisher,
+                    circuitBreakerRegistry,
+                    retryRegistry,
+                    meterRegistryProvider,
+                    publisherName
+            );
+        }
+        
+        return publisher;
+    }
+}
