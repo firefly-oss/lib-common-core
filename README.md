@@ -17,6 +17,7 @@ A comprehensive foundation library for the Firefly platform that provides essent
   - [Centralized Configuration](#centralized-configuration)
   - [Service Registry](#service-registry)
   - [Auto-Configuration](#auto-configuration)
+  - [Logging Configuration](#logging-configuration)
 - [Configuration Reference](#configuration-reference)
   - [WebClient Properties](#webclient-properties)
   - [Messaging Properties](#messaging-properties)
@@ -597,6 +598,152 @@ You can customize the auto-configuration behavior in several ways:
 2. **Custom Beans**: Define your own beans to replace auto-configured ones
 3. **Conditional Annotations**: Use `@ConditionalOnProperty` to control when auto-configuration is applied
 4. **Exclusions**: Explicitly exclude specific auto-configurations
+
+### Logging Configuration
+
+The library provides a comprehensive logging configuration that enables structured logging with JSON format, making it easier to parse and analyze logs in centralized logging systems like ELK (Elasticsearch, Logstash, Kibana).
+
+#### How It Works
+
+1. The library includes pre-configured logging settings in `application-logging.yml` and `logback-spring.xml`.
+2. The `application-logging.yml` file sets default log levels for different packages.
+3. The `logback-spring.xml` file configures the Logstash encoder for structured JSON logging.
+4. When you include this library as a dependency, these logging configurations are automatically applied.
+5. You can override any logging configuration by providing your own `application-logging.yml` or `logback-spring.xml` files.
+
+#### Key Components
+
+- **application-logging.yml**: Configures log levels for different packages
+  - Sets root logging level to INFO
+  - Sets com.catalis package to DEBUG
+  - Configures Spring framework packages to appropriate levels
+  - Located in `src/main/resources/application-logging.yml`
+  - Automatically loaded when the library is included as a dependency
+
+- **logback-spring.xml**: Configures the logging infrastructure
+  - Sets up the Logstash encoder for structured JSON logging
+  - Configures custom fields for application metadata (application name, profile)
+  - Defines field names and formats for consistent logging
+  - Configures stack trace handling with shortened format
+  - Sets up asynchronous logging for improved performance
+  - Located in `src/main/resources/logback-spring.xml`
+  - Automatically loaded by Spring Boot's logging system
+
+- **Logstash Encoder**: Provides structured JSON logging
+  - Formats logs as JSON for easier parsing and analysis
+  - Includes contextual information like application name and environment
+  - Supports custom fields and MDC (Mapped Diagnostic Context) values
+  - Optimizes stack trace formatting
+  - Provided by the `net.logstash.logback:logstash-logback-encoder` dependency
+  - Enables integration with ELK stack and other log analysis tools
+
+#### Benefits
+
+- **Structured Logging**: JSON format makes logs easier to parse and analyze
+- **Contextual Information**: Automatically includes application metadata in logs
+- **Correlation**: Transaction IDs are automatically included in logs for request tracing
+- **Performance**: Asynchronous logging minimizes impact on application performance
+- **Consistency**: Ensures consistent log format across all services
+
+#### Configuration Examples
+
+##### Basic Log Level Configuration
+
+You can customize log levels in your `application.yml` or `application-logging.yml`:
+
+```yaml
+logging:
+  level:
+    root: INFO
+    com.yourcompany: DEBUG
+    org.springframework.web: INFO
+    org.hibernate: WARN
+```
+
+##### Including Transaction ID in Logs
+
+The transaction ID is automatically included in logs when using the transaction tracking feature:
+
+```java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class ExampleController {
+    private static final Logger log = LoggerFactory.getLogger(ExampleController.class);
+
+    @GetMapping("/example")
+    public Mono<String> getExample() {
+        // The transaction ID is automatically included in this log message
+        log.info("Processing example request");
+        return Mono.just("Example response");
+    }
+}
+```
+
+##### Custom MDC Values
+
+You can add custom values to the MDC for inclusion in logs:
+
+```java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class OrderController {
+    private static final Logger log = LoggerFactory.getLogger(OrderController.class);
+
+    @GetMapping("/orders/{orderId}")
+    public Mono<OrderDetails> getOrderDetails(@PathVariable String orderId) {
+        return Mono.deferContextual(ctx -> {
+            // Add custom MDC value
+            MDC.put("orderId", orderId);
+
+            try {
+                log.info("Retrieving order details");
+                // Business logic...
+                return orderService.getOrderDetails(orderId);
+            } finally {
+                // Clean up MDC
+                MDC.remove("orderId");
+            }
+        });
+    }
+}
+```
+
+##### Custom logback-spring.xml
+
+If you need to customize the logging configuration further, you can provide your own `logback-spring.xml` file:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Import the default configuration from the library -->
+    <include resource="logback-spring.xml"/>
+
+    <!-- Add your custom appenders -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/application.log</file>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/application.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <!-- Add the file appender to the root logger -->
+    <root level="INFO">
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>
+```
 
 ## Configuration Reference
 
