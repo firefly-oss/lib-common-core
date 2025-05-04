@@ -34,6 +34,7 @@ This module provides functionality to automatically publish and consume events f
 - Transaction ID propagation
 - Asynchronous and synchronous options
 - Support for reactive return types (Mono, Flux) and CompletableFuture
+- Support for multiple connections to different servers of the same messaging system type
 - Resilience features:
   - Circuit breaker pattern
   - Automatic retries
@@ -204,6 +205,62 @@ public Mono<User> updateUser(String id, UserRequest request) {
 }
 ```
 
+### Using Multiple Connections
+
+You can specify which connection to use by setting the `connectionId` parameter in the annotation:
+
+```java
+// Publishing to the production Kafka cluster
+@PublishResult(
+    destination = "user-events",
+    eventType = "user.created",
+    publisher = PublisherType.KAFKA,
+    connectionId = "prod-cluster"
+)
+public User createUserInProd(UserRequest request) {
+    // Method implementation
+    return user;
+}
+
+// Publishing to the development Kafka cluster
+@PublishResult(
+    destination = "user-events",
+    eventType = "user.created",
+    publisher = PublisherType.KAFKA,
+    connectionId = "dev-cluster"
+)
+public User createUserInDev(UserRequest request) {
+    // Method implementation
+    return user;
+}
+```
+
+Similarly, for event listeners:
+
+```java
+// Listening to events from the production Kafka cluster
+@EventListener(
+    source = "user-events",
+    eventType = "user.created",
+    subscriber = SubscriberType.KAFKA,
+    connectionId = "prod-cluster"
+)
+public void handleUserCreatedInProd(User user) {
+    // Handle user created event from production
+}
+
+// Listening to events from the development Kafka cluster
+@EventListener(
+    source = "user-events",
+    eventType = "user.created",
+    subscriber = SubscriberType.KAFKA,
+    connectionId = "dev-cluster"
+)
+public void handleUserCreatedInDev(User user) {
+    // Handle user created event from development
+}
+```
+
 ### Custom Payload Expression
 
 You can use the `payloadExpression` parameter to customize the payload that is published:
@@ -225,6 +282,18 @@ public User updateUser(String id, UserRequest request) {
 
 Add the following properties to your `application.yml` or `application.properties` file to enable and configure the messaging functionality. Below is a comprehensive configuration example with all available options:
 
+### Multiple Connections
+
+The messaging module supports configuring multiple connections for each messaging system type. This allows you to publish to or subscribe from different servers of the same type (e.g., different Kafka clusters, RabbitMQ servers, etc.).
+
+To use multiple connections:
+
+1. Configure each connection in the `*-connections` section of the configuration (e.g., `kafka-connections`, `rabbitmq-connections`, etc.)
+2. Give each connection a unique ID (e.g., `prod-cluster`, `dev-server`, etc.)
+3. Specify the connection ID in the `connectionId` parameter of the `@PublishResult` or `@EventListener` annotation
+
+If no connection ID is specified in the annotation, the default connection (configured directly under `kafka`, `rabbitmq`, etc.) will be used.
+
 ```yaml
 messaging:
   # Enable or disable all messaging functionality (default: false)
@@ -236,7 +305,10 @@ messaging:
   # Default timeout for publishing operations in seconds
   publish-timeout-seconds: 5
 
-  # Kafka configuration
+  # Default connection ID to use if not specified in the annotation
+  default-connection-id: default
+
+  # Kafka configuration (default connection)
   kafka:
     # Enable or disable Kafka publishing (default: false)
     enabled: true
@@ -266,7 +338,30 @@ messaging:
       linger-ms: 1
       buffer-memory: 33554432
 
-  # RabbitMQ configuration
+  # Multiple Kafka connections configuration
+  kafka-connections:
+    # Production Kafka cluster connection
+    prod-cluster:
+      enabled: true
+      default-topic: prod-events
+      bootstrap-servers: prod-kafka1:9092,prod-kafka2:9092,prod-kafka3:9092
+      client-id: prod-messaging-publisher
+      security-protocol: SASL_SSL
+      sasl-mechanism: PLAIN
+      sasl-username: "prod-user"
+      sasl-password: "prod-password"
+      properties:
+        acks: all
+        retries: 5
+
+    # Development Kafka cluster connection
+    dev-cluster:
+      enabled: true
+      default-topic: dev-events
+      bootstrap-servers: dev-kafka:9092
+      client-id: dev-messaging-publisher
+
+  # RabbitMQ configuration (default connection)
   rabbitmq:
     # Enable or disable RabbitMQ publishing (default: false)
     enabled: true
@@ -293,6 +388,28 @@ messaging:
       publisher-confirms: true
       publisher-returns: true
       mandatory: true
+
+  # Multiple RabbitMQ connections configuration
+  rabbitmq-connections:
+    # Production RabbitMQ server connection
+    prod-server:
+      enabled: true
+      default-exchange: prod-events
+      default-routing-key: prod-default
+      host: prod-rabbitmq.example.com
+      port: 5672
+      virtual-host: /prod
+      username: prod-user
+      password: prod-password
+      ssl: true
+
+    # Development RabbitMQ server connection
+    dev-server:
+      enabled: true
+      default-exchange: dev-events
+      host: dev-rabbitmq.example.com
+      username: dev-user
+      password: dev-password
 
   # Amazon SQS configuration
   sqs:
