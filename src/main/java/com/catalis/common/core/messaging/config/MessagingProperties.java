@@ -35,6 +35,12 @@ public class MessagingProperties {
     private int publishTimeoutSeconds = 5;
 
     /**
+     * Application name to use as the source service in message headers.
+     * If not specified, it will try to use spring.application.name.
+     */
+    private String applicationName;
+
+    /**
      * Serialization configuration.
      */
     private SerializationConfig serialization = new SerializationConfig();
