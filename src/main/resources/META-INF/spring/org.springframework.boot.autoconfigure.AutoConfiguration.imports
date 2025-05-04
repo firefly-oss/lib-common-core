@@ -2,3 +2,4 @@ com.catalis.common.core.config.WebFluxConfig
 com.catalis.common.core.config.WebClientConfig
 com.catalis.common.core.config.WebClientProperties
 com.catalis.common.core.config.WebFilterConfig
+com.catalis.common.core.messaging.config.MessagingConfig
