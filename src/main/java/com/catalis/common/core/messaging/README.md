@@ -692,13 +692,16 @@ Each messaging system requires specific connection details. Here's a summary of 
 - `endpoint`: Custom endpoint URL (useful for localstack)
 
 #### Amazon Kinesis
-- `region`: AWS region where the Kinesis stream is located
+- `region`: AWS region where the Kinesis stream is located (required)
 - `access-key-id`, `secret-access-key`: AWS credentials
 - `session-token`: Optional session token for temporary credentials
 - `endpoint`: Custom endpoint URL (useful for localstack)
 - `initial-position`: Initial position in the stream when starting a new consumer (LATEST, TRIM_HORIZON, AT_TIMESTAMP)
 - `application-name`: Application name for Kinesis Client Library (KCL)
 - `enhanced-fan-out`: Whether to use enhanced fan-out for Kinesis consumers
+- `consumer-name`: Consumer name for enhanced fan-out
+- `max-retries`: Maximum number of retry attempts
+- `retry-delay-millis`: Delay between retry attempts in milliseconds
 
 #### Google Cloud Pub/Sub
 - `project-id`: Google Cloud project ID
@@ -1062,7 +1065,7 @@ public class MessagingSystemAutoConfiguration {
     @Bean
     @Lazy
     @ConditionalOnProperty(prefix = "messaging.kafka", name = "enabled", havingValue = "true")
-    public EventPublisher kafkaEventPublisher(ObjectProvider<KafkaTemplate<String, Object>> kafkaTemplateProvider, 
+    public EventPublisher kafkaEventPublisher(ObjectProvider<KafkaTemplate<String, Object>> kafkaTemplateProvider,
                                              MessagingProperties properties,
                                              ObjectMapper objectMapper) {
         return new KafkaEventPublisher(kafkaTemplateProvider, properties, objectMapper);
@@ -1194,6 +1197,7 @@ This ensures that resources are properly released and that no messages are lost 
 1. **Check if the publisher is available**:
    - Verify that the publisher is properly configured and enabled
    - Check the logs for any errors related to the publisher
+   - For AWS services (Kinesis, SQS), ensure the region is properly configured
 
 2. **Verify the destination**:
    - Make sure the destination (topic, queue, etc.) exists and is accessible
@@ -1202,12 +1206,19 @@ This ensures that resources are properly released and that no messages are lost 
 3. **Check serialization**:
    - Ensure the payload can be serialized with the configured serialization format
    - For Avro and Protobuf, make sure the classes are properly generated
+   - Handle potential null values in your payload to avoid serialization errors
+
+4. **Check configuration properties**:
+   - Ensure all required configuration properties are set
+   - For Kinesis, the region property is required
+   - For custom endpoints, ensure they are properly formatted
 
 #### Events Are Not Being Received
 
 1. **Check if the subscriber is available**:
    - Verify that the subscriber is properly configured and enabled
    - Check the logs for any errors related to the subscriber
+   - Ensure the subscriber's `isAvailable()` method returns true (check logs at DEBUG level)
 
 2. **Verify the source**:
    - Make sure the source (topic, queue, etc.) exists and is accessible
@@ -1219,3 +1230,9 @@ This ensures that resources are properly released and that no messages are lost 
 4. **Check deserialization**:
    - Ensure the payload can be deserialized to the expected type
    - For Avro and Protobuf, make sure the classes are properly generated
+   - Handle potential null values in your payload to avoid deserialization errors
+
+5. **Check configuration properties**:
+   - Ensure all required configuration properties are set
+   - For Kinesis, the region property is required
+   - For custom endpoints, ensure they are properly formatted and accessible
