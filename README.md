@@ -12,6 +12,11 @@ A comprehensive foundation library for the Firefly platform that provides essent
   - [Transaction Tracking](#transaction-tracking)
   - [WebClient Utilities](#webclient-utilities)
   - [Messaging System](#messaging-system)
+    - [How It Works](#how-it-works-2)
+    - [Supported Messaging Systems](#supported-messaging-systems)
+    - [Key Features](#key-features-2)
+    - [Benefits](#benefits-2)
+    - [Required Dependencies](#required-dependencies)
   - [Resilience Patterns](#resilience-patterns)
   - [Actuator and Monitoring](#actuator-and-monitoring)
   - [Centralized Configuration](#centralized-configuration)
@@ -291,6 +296,211 @@ The messaging system provides a declarative way to publish method results to var
 - **Consistent messaging**: Ensure all services publish messages in the same way
 - **Simplified testing**: Easier to test business logic without messaging dependencies
 - **Flexible integration**: Support for multiple messaging systems with the same code
+
+#### Required Dependencies
+
+To use the messaging system, you need to include the lib-common-core dependency and the specific dependencies for the messaging systems you want to use:
+
+##### Core Dependency
+
+**Maven**:
+```xml
+<dependency>
+    <groupId>com.catalis</groupId>
+    <artifactId>lib-common-core</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+</dependency>
+```
+
+**Gradle**:
+```groovy
+implementation 'com.catalis:lib-common-core:1.0.0-SNAPSHOT'
+```
+
+##### Spring Event Bus
+No additional dependencies required beyond the core dependency.
+
+##### Apache Kafka
+
+**Maven**:
+```xml
+<dependency>
+    <groupId>org.springframework.kafka</groupId>
+    <artifactId>spring-kafka</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.projectreactor.kafka</groupId>
+    <artifactId>reactor-kafka</artifactId>
+    <version>1.3.23</version>
+</dependency>
+```
+
+**Gradle**:
+```groovy
+implementation 'org.springframework.kafka:spring-kafka'
+implementation 'io.projectreactor.kafka:reactor-kafka:1.3.23'
+```
+
+##### RabbitMQ
+
+**Maven**:
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-amqp</artifactId>
+</dependency>
+```
+
+**Gradle**:
+```groovy
+implementation 'org.springframework.boot:spring-boot-starter-amqp'
+```
+
+##### Amazon SQS
+
+**Maven**:
+```xml
+<dependency>
+    <groupId>io.awspring.cloud</groupId>
+    <artifactId>spring-cloud-aws-starter-sqs</artifactId>
+    <version>3.3.0</version>
+</dependency>
+```
+
+**Gradle**:
+```groovy
+implementation 'io.awspring.cloud:spring-cloud-aws-starter-sqs:3.3.0'
+```
+
+##### Amazon Kinesis
+
+**Maven**:
+```xml
+<dependency>
+    <groupId>software.amazon.awssdk</groupId>
+    <artifactId>kinesis</artifactId>
+    <version>2.31.32</version>
+</dependency>
+<dependency>
+    <groupId>software.amazon.kinesis</groupId>
+    <artifactId>amazon-kinesis-client</artifactId>
+    <version>2.5.1</version>
+</dependency>
+```
+
+**Gradle**:
+```groovy
+implementation 'software.amazon.awssdk:kinesis:2.31.32'
+implementation 'software.amazon.kinesis:amazon-kinesis-client:2.5.1'
+```
+
+##### Google Cloud Pub/Sub
+
+**Maven**:
+```xml
+<dependency>
+    <groupId>com.google.cloud</groupId>
+    <artifactId>spring-cloud-gcp-starter-pubsub</artifactId>
+    <version>6.1.1</version>
+</dependency>
+```
+
+**Gradle**:
+```groovy
+implementation 'com.google.cloud:spring-cloud-gcp-starter-pubsub:6.1.1'
+```
+
+##### Azure Service Bus
+
+**Maven**:
+```xml
+<dependency>
+    <groupId>com.azure.spring</groupId>
+    <artifactId>spring-cloud-azure-starter-servicebus</artifactId>
+    <version>5.22.0</version>
+</dependency>
+<dependency>
+    <groupId>com.azure.spring</groupId>
+    <artifactId>spring-messaging-azure-servicebus</artifactId>
+    <version>5.22.0</version>
+</dependency>
+```
+
+**Gradle**:
+```groovy
+implementation 'com.azure.spring:spring-cloud-azure-starter-servicebus:5.22.0'
+implementation 'com.azure.spring:spring-messaging-azure-servicebus:5.22.0'
+```
+
+##### Redis Pub/Sub
+
+**Maven**:
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis</artifactId>
+</dependency>
+```
+
+**Gradle**:
+```groovy
+implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+```
+
+##### ActiveMQ/JMS
+
+**Maven**:
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-activemq</artifactId>
+</dependency>
+```
+
+**Gradle**:
+```groovy
+implementation 'org.springframework.boot:spring-boot-starter-activemq'
+```
+
+##### Serialization Formats
+
+For Avro serialization:
+
+**Maven**:
+```xml
+<dependency>
+    <groupId>org.apache.avro</groupId>
+    <artifactId>avro</artifactId>
+    <version>1.11.1</version>
+</dependency>
+```
+
+**Gradle**:
+```groovy
+implementation 'org.apache.avro:avro:1.11.1'
+```
+
+For Protocol Buffers serialization:
+
+**Maven**:
+```xml
+<dependency>
+    <groupId>com.google.protobuf</groupId>
+    <artifactId>protobuf-java</artifactId>
+    <version>3.22.3</version>
+</dependency>
+<dependency>
+    <groupId>com.google.protobuf</groupId>
+    <artifactId>protobuf-java-util</artifactId>
+    <version>3.22.3</version>
+</dependency>
+```
+
+**Gradle**:
+```groovy
+implementation 'com.google.protobuf:protobuf-java:3.22.3'
+implementation 'com.google.protobuf:protobuf-java-util:3.22.3'
+```
 
 ### Resilience Patterns
 
@@ -1565,6 +1775,10 @@ messaging:
 ```
 
 **Note**: The Spring Event Bus is a special case - it will be loaded whenever `messaging.enabled=true` since it doesn't require external configuration.
+
+#### Required Dependencies
+
+Before using the messaging system, make sure to include the required dependencies for the messaging systems you want to use. See the [Required Dependencies](#required-dependencies) section under Messaging System for detailed information on which dependencies to include for each messaging system.
 
 #### Publishing Events with @PublishResult
 
@@ -2969,6 +3183,7 @@ public class PaymentService {
 2. **Verify dependencies**:
    - Make sure you have the required dependencies for your messaging system (e.g., `spring-kafka` for Kafka)
    - Check that the dependencies are not marked as provided or optional in your build file
+   - Refer to the [Required Dependencies](#required-dependencies) section under Messaging System for a complete list of dependencies for each messaging system
 
 3. **Check bean loading**:
    - Enable debug logging for Spring's auto-configuration to see if the beans are being created:
@@ -2983,6 +3198,7 @@ public class PaymentService {
 1. **Check if the publisher is available**:
    - Verify that the publisher is properly configured and enabled
    - Check the logs for any errors related to the publisher
+   - Ensure you have included the correct dependencies for the messaging system you're using (see [Required Dependencies](#required-dependencies))
 
 3. **Check connection settings**:
    - Verify that connection details (hosts, ports, credentials) are correct
