@@ -33,7 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
         prefix = "messaging",
-        name = "enabled",
+        name = {"enabled", "jms.enabled"},
         havingValue = "true",
         matchIfMissing = false
 )
@@ -117,7 +117,7 @@ public class JmsEventSubscriber implements EventSubscriber, ConnectionAwareSubsc
                         }
 
                         // Create acknowledgement if needed
-                        EventHandler.Acknowledgement ack = autoAck ? null : 
+                        EventHandler.Acknowledgement ack = autoAck ? null :
                                 () -> Mono.fromRunnable(() -> {
                                     try {
                                         message.acknowledge();
@@ -182,8 +182,8 @@ public class JmsEventSubscriber implements EventSubscriber, ConnectionAwareSubsc
 
     @Override
     public boolean isAvailable() {
-        return jmsTemplateProvider.getIfAvailable() != null && 
-               jmsListenerContainerFactoryProvider.getIfAvailable() != null && 
+        return jmsTemplateProvider.getIfAvailable() != null &&
+               jmsListenerContainerFactoryProvider.getIfAvailable() != null &&
                jmsListenerEndpointRegistryProvider.getIfAvailable() != null &&
                messagingProperties.getJmsConfig(connectionId).isEnabled();
     }

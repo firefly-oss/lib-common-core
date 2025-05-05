@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Component
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
         prefix = "messaging",
-        name = "enabled",
+        name = {"enabled", "google-pub-sub.enabled"},
         havingValue = "true",
         matchIfMissing = false
 )
@@ -66,7 +66,7 @@ public class GooglePubSubEventSubscriber implements EventSubscriber, ConnectionA
 
             try {
                 // Create a subscription name if not provided
-                String subscriptionName = groupId.isEmpty() ? 
+                String subscriptionName = groupId.isEmpty() ?
                         "subscription-" + source : groupId;
 
                 // Create a flag to track subscription status
@@ -95,7 +95,7 @@ public class GooglePubSubEventSubscriber implements EventSubscriber, ConnectionA
                         }
 
                         // Create acknowledgement if needed
-                        EventHandler.Acknowledgement ack = autoAck ? null : 
+                        EventHandler.Acknowledgement ack = autoAck ? null :
                                 () -> Mono.fromRunnable(message::ack);
 
                         // Get the payload
@@ -120,7 +120,7 @@ public class GooglePubSubEventSubscriber implements EventSubscriber, ConnectionA
                     }
                 });
 
-                log.info("Subscribed to Google Pub/Sub topic {} with subscription {} and event type {}", 
+                log.info("Subscribed to Google Pub/Sub topic {} with subscription {} and event type {}",
                         source, subscriptionName, eventType);
             } catch (Exception e) {
                 log.error("Failed to subscribe to Google Pub/Sub: {}", e.getMessage(), e);
@@ -146,7 +146,7 @@ public class GooglePubSubEventSubscriber implements EventSubscriber, ConnectionA
                     try {
                         // PubSubTemplate doesn't have an unsubscribe method, so we'll just log it
                         log.info("Unsubscribe operation not supported by PubSubTemplate. Subscription {} will remain active.", subscriptionName);
-                        log.info("Unsubscribed from Google Pub/Sub topic {} with subscription {} and event type {}", 
+                        log.info("Unsubscribed from Google Pub/Sub topic {} with subscription {} and event type {}",
                                 source, subscriptionName, eventType);
                     } catch (Exception e) {
                         log.error("Failed to unsubscribe from Google Pub/Sub: {}", e.getMessage(), e);
@@ -158,7 +158,7 @@ public class GooglePubSubEventSubscriber implements EventSubscriber, ConnectionA
 
     @Override
     public boolean isAvailable() {
-        return (pubSubTemplateProvider.getIfAvailable() != null || 
+        return (pubSubTemplateProvider.getIfAvailable() != null ||
                pubSubSubscriberTemplateProvider.getIfAvailable() != null) &&
                messagingProperties.getGooglePubSubConfig(connectionId).isEnabled();
     }

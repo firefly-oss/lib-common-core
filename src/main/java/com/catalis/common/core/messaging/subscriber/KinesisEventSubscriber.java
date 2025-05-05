@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Component
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
         prefix = "messaging",
-        name = "enabled",
+        name = {"enabled", "kinesis.enabled"},
         havingValue = "true",
         matchIfMissing = false
 )
@@ -86,11 +86,11 @@ public class KinesisEventSubscriber implements EventSubscriber, ConnectionAwareS
 
             try {
                 // Determine the application name
-                String applicationName = groupId.isEmpty() ? 
+                String applicationName = groupId.isEmpty() ?
                         messagingProperties.getKinesis().getApplicationName() : groupId;
 
                 // Determine the consumer name
-                String consumerName = clientId.isEmpty() ? 
+                String consumerName = clientId.isEmpty() ?
                         messagingProperties.getKinesis().getConsumerName() : clientId;
 
                 // Determine the initial position in the stream
@@ -110,7 +110,7 @@ public class KinesisEventSubscriber implements EventSubscriber, ConnectionAwareS
 
                 // Create initial position with timestamp if needed
                 InitialPositionInStreamExtended initialPositionExtended;
-                if (initialPosition == InitialPositionInStream.AT_TIMESTAMP && 
+                if (initialPosition == InitialPositionInStream.AT_TIMESTAMP &&
                         !messagingProperties.getKinesis().getInitialTimestamp().isEmpty()) {
                     Instant timestamp = Instant.parse(messagingProperties.getKinesis().getInitialTimestamp());
                     java.util.Date date = java.util.Date.from(timestamp);
@@ -141,7 +141,7 @@ public class KinesisEventSubscriber implements EventSubscriber, ConnectionAwareS
                 );
                 subscriptions.put(key, info);
 
-                log.info("Subscribed to Kinesis stream {} with event type {} and application name {}", 
+                log.info("Subscribed to Kinesis stream {} with event type {} and application name {}",
                         source, eventType, applicationName);
             } catch (Exception e) {
                 log.error("Failed to subscribe to Kinesis: {}", e.getMessage(), e);
@@ -198,7 +198,7 @@ public class KinesisEventSubscriber implements EventSubscriber, ConnectionAwareS
                     .region(Region.of(config.getRegion()));
 
             // Set credentials if provided
-            if (config.getAccessKeyId() != null && !config.getAccessKeyId().isEmpty() && 
+            if (config.getAccessKeyId() != null && !config.getAccessKeyId().isEmpty() &&
                 config.getSecretAccessKey() != null && !config.getSecretAccessKey().isEmpty()) {
                 AwsCredentialsProvider credentialsProvider = StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(config.getAccessKeyId(), config.getSecretAccessKey())
@@ -254,7 +254,7 @@ public class KinesisEventSubscriber implements EventSubscriber, ConnectionAwareS
 
         @Override
         public void processRecords(ProcessRecordsInput processRecordsInput) {
-            log.debug("Processing {} records from shard {}", 
+            log.debug("Processing {} records from shard {}",
                     processRecordsInput.records().size(), shardId);
 
             for (KinesisClientRecord record : processRecordsInput.records()) {
@@ -285,7 +285,7 @@ public class KinesisEventSubscriber implements EventSubscriber, ConnectionAwareS
                     }
 
                     // Create acknowledgement if needed
-                    EventHandler.Acknowledgement ack = autoAck ? null : 
+                    EventHandler.Acknowledgement ack = autoAck ? null :
                             () -> Mono.fromRunnable(() -> {
                                 try {
                                     processRecordsInput.checkpointer().checkpoint(record.sequenceNumber());

@@ -28,7 +28,7 @@ import java.util.function.Consumer;
 @Component
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
         prefix = "messaging",
-        name = "enabled",
+        name = {"enabled", "sqs.enabled"},
         havingValue = "true",
         matchIfMissing = false
 )
@@ -84,13 +84,13 @@ public class SqsEventSubscriber implements EventSubscriber, ConnectionAwareSubsc
                         }
 
                         // Create acknowledgement if needed
-                        EventHandler.Acknowledgement ack = autoAck ? null : 
+                        EventHandler.Acknowledgement ack = autoAck ? null :
                                 () -> Mono.fromRunnable(() -> {
                                     try {
                                         // Delete the message from the queue
                                         String receiptHandle = (String) headers.get("receiptHandle");
                                         if (receiptHandle != null) {
-                                            sqsAsyncClient.deleteMessage(builder -> 
+                                            sqsAsyncClient.deleteMessage(builder ->
                                                 builder.queueUrl(source)
                                                        .receiptHandle(receiptHandle)
                                             );
@@ -122,7 +122,7 @@ public class SqsEventSubscriber implements EventSubscriber, ConnectionAwareSubsc
                         if (autoAck) {
                             String receiptHandle = (String) headers.get("receiptHandle");
                             if (receiptHandle != null) {
-                                sqsAsyncClient.deleteMessage(builder -> 
+                                sqsAsyncClient.deleteMessage(builder ->
                                     builder.queueUrl(source)
                                            .receiptHandle(receiptHandle)
                                 );
@@ -169,7 +169,7 @@ public class SqsEventSubscriber implements EventSubscriber, ConnectionAwareSubsc
 
     @Override
     public boolean isAvailable() {
-        return sqsTemplateProvider.getIfAvailable() != null && 
+        return sqsTemplateProvider.getIfAvailable() != null &&
                sqsAsyncClientProvider.getIfAvailable() != null &&
                messagingProperties.getSqsConfig(connectionId).isEnabled();
     }

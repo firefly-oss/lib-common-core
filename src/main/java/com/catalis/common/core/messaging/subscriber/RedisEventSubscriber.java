@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
         prefix = "messaging",
-        name = "enabled",
+        name = {"enabled", "redis.enabled"},
         havingValue = "true",
         matchIfMissing = false
 )
@@ -106,9 +106,9 @@ public class RedisEventSubscriber implements EventSubscriber, ConnectionAwareSub
 
                         // Handle the event
                         eventHandler.handleEvent(payload, headers, ack)
-                                .doOnSuccess(v -> log.debug("Successfully handled Redis message from channel {}", 
+                                .doOnSuccess(v -> log.debug("Successfully handled Redis message from channel {}",
                                         new String(message.getChannel())))
-                                .doOnError(error -> log.error("Error handling Redis message: {}", 
+                                .doOnError(error -> log.error("Error handling Redis message: {}",
                                         error.getMessage(), error))
                                 .subscribe();
                     } catch (Exception e) {
@@ -145,7 +145,7 @@ public class RedisEventSubscriber implements EventSubscriber, ConnectionAwareSub
 
     @Override
     public boolean isAvailable() {
-        return redisTemplateProvider.getIfAvailable() != null && 
+        return redisTemplateProvider.getIfAvailable() != null &&
                redisConnectionFactoryProvider.getIfAvailable() != null &&
                messagingProperties.getRedisConfig(connectionId).isEnabled();
     }

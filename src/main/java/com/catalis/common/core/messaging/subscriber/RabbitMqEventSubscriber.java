@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
         prefix = "messaging",
-        name = "enabled",
+        name = {"enabled", "rabbitmq.enabled"},
         havingValue = "true",
         matchIfMissing = false
 )
