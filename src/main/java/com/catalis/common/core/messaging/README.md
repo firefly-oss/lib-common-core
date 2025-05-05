@@ -668,7 +668,7 @@ messaging:
     properties: {}
 ```
 
-**Note**: By default, all messaging functionality is disabled. You need to explicitly enable it in your configuration. You only need to configure the messaging systems you plan to use.
+**Note**: By default, all messaging functionality is disabled. You need to explicitly enable it in your configuration by setting `messaging.enabled=true`. Additionally, you need to explicitly enable each messaging system you want to use by setting its specific `enabled` property (e.g., `messaging.kafka.enabled=true`). Only the messaging systems that are explicitly enabled will be loaded, even if `messaging.enabled` is set to `true`.
 
 ### Connection Configuration
 
@@ -726,6 +726,32 @@ Each messaging system requires specific connection details. Here's a summary of 
 - `connection-factory-class`: Class name of the connection factory
 - `ssl`: Whether to use SSL for the connection
 - `trust-store-path`, `trust-store-password`, `key-store-path`, `key-store-password`: SSL settings
+
+## Conditional Loading of Messaging Systems
+
+The messaging module uses Spring's conditional bean loading to only load the components for messaging systems that are explicitly enabled in your configuration. This helps reduce memory usage and startup time by only initializing the messaging systems you actually need.
+
+For a messaging system to be loaded, two conditions must be met:
+
+1. The overall messaging functionality must be enabled with `messaging.enabled=true`
+2. The specific messaging system must be enabled with its own `enabled` property (e.g., `messaging.kafka.enabled=true`)
+
+For example, if you have the following configuration:
+
+```yaml
+messaging:
+  enabled: true
+  kafka:
+    enabled: true
+    # Kafka configuration...
+  rabbitmq:
+    enabled: false
+    # RabbitMQ configuration...
+```
+
+Only the Kafka-related components will be loaded, while the RabbitMQ components will not be initialized, even though their configuration is present.
+
+The Spring Event Bus is a special case - it will be loaded whenever `messaging.enabled=true` since it doesn't require external configuration.
 
 ## Dependencies
 
@@ -1019,3 +1045,177 @@ public User createUser(UserRequest request) {
     return user;
 }
 ```
+
+## Operational Features
+
+The messaging module includes several operational features to make it easier to monitor and manage your messaging systems in production environments.
+
+### Conditional Bean Registration with Factory Pattern
+
+The messaging module uses a factory pattern to conditionally register beans for each messaging system. This approach makes the conditional loading more explicit and easier to understand:
+
+```java
+@Configuration
+@ConditionalOnProperty(prefix = "messaging", name = "enabled", havingValue = "true")
+public class MessagingSystemAutoConfiguration {
+
+    @Bean
+    @Lazy
+    @ConditionalOnProperty(prefix = "messaging.kafka", name = "enabled", havingValue = "true")
+    public EventPublisher kafkaEventPublisher(ObjectProvider<KafkaTemplate<String, Object>> kafkaTemplateProvider, 
+                                             MessagingProperties properties,
+                                             ObjectMapper objectMapper) {
+        return new KafkaEventPublisher(kafkaTemplateProvider, properties, objectMapper);
+    }
+
+    // Other messaging system beans...
+}
+```
+
+This approach ensures that only the messaging systems that are enabled in the configuration will have their beans registered, reducing memory usage and startup time.
+
+### Health Indicators
+
+The messaging module provides health indicators for each messaging system, which can be used with Spring Boot Actuator to monitor the health of your messaging systems:
+
+```yaml
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      group:
+        messaging:
+          include: kafka,rabbitmq,sqs,googlePubSub,azureServiceBus,redis,jms,kinesis
+```
+
+With this configuration, you can access the health of your messaging systems at `/actuator/health/messaging`.
+
+Each health indicator checks if the messaging system is available and reports its status. For example, the Kafka health indicator checks if the Kafka template is available and if the Kafka configuration is enabled.
+
+### Metrics
+
+The messaging module collects metrics for message publishing and subscribing operations using Micrometer. These metrics can be exported to monitoring systems like Prometheus:
+
+```yaml
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+```
+
+The following metrics are collected:
+
+- `messaging.publish.time`: Timer for message publishing operations
+- `messaging.publish.count`: Counter for message publishing operations
+- `messaging.subscribe.time`: Timer for message subscribing operations
+- `messaging.subscribe.count`: Counter for message subscribing operations
+- `messaging.system.enabled`: Gauge for whether a messaging system is enabled
+
+Each metric includes tags for the messaging system, destination, event type, and success status.
+
+### Auto-Configuration Report
+
+The messaging module provides a startup report that shows which messaging systems are enabled and which are disabled:
+
+```
+=== Messaging System Configuration Report ===
+Overall messaging enabled: true
+Spring Event Bus: Configuration enabled: true, Publisher loaded: true, Subscriber loaded: true
+Kafka: Configuration enabled: true, Publisher loaded: true, Subscriber loaded: true
+RabbitMQ: Configuration enabled: false, Publisher loaded: false, Subscriber loaded: false
+Amazon SQS: Configuration enabled: false, Publisher loaded: false, Subscriber loaded: false
+Google Pub/Sub: Configuration enabled: false, Publisher loaded: false, Subscriber loaded: false
+Azure Service Bus: Configuration enabled: false, Publisher loaded: false, Subscriber loaded: false
+Redis: Configuration enabled: false, Publisher loaded: false, Subscriber loaded: false
+JMS: Configuration enabled: false, Publisher loaded: false, Subscriber loaded: false
+Kinesis: Configuration enabled: false, Publisher loaded: false, Subscriber loaded: false
+Available Publishers: [springEventPublisher, kafkaEventPublisher]
+Available Subscribers: [springEventSubscriber, kafkaEventSubscriber]
+```
+
+This report is logged at INFO level when the application starts, making it easy to see which messaging systems are enabled and loaded.
+
+### Graceful Shutdown
+
+The messaging module ensures that all messaging connections are properly closed when the application shuts down:
+
+```java
+@Component
+@ConditionalOnProperty(prefix = "messaging", name = "enabled", havingValue = "true")
+public class MessagingGracefulShutdownHandler implements DisposableBean {
+
+    @Override
+    public void destroy() throws Exception {
+        // Shutdown logic for messaging systems
+    }
+}
+```
+
+This ensures that resources are properly released and that no messages are lost during shutdown.
+
+## Troubleshooting
+
+### Common Issues
+
+#### Messaging System Not Loading
+
+1. **Check if messaging is enabled**:
+   - Ensure `messaging.enabled=true` is set in your application properties
+   - For the specific messaging system, ensure its enabled property is set (e.g., `messaging.kafka.enabled=true`)
+   - Remember that both conditions must be met for a messaging system to be loaded
+
+2. **Verify dependencies**:
+   - Make sure you have the required dependencies for your messaging system (e.g., `spring-kafka` for Kafka)
+
+3. **Check connection settings**:
+   - Verify that connection details (hosts, ports, credentials) are correct
+   - For Kafka, check that the bootstrap servers are reachable
+   - For RabbitMQ, verify the host, port, and credentials
+
+4. **Enable debug logging**:
+   ```yaml
+   logging:
+     level:
+       com.catalis.common.core.messaging: DEBUG
+   ```
+
+#### Events Are Not Being Published
+
+1. **Check if the publisher is available**:
+   - Verify that the publisher is properly configured and enabled
+   - Check the logs for any errors related to the publisher
+
+2. **Verify the destination**:
+   - Make sure the destination (topic, queue, etc.) exists and is accessible
+   - Check if you have the necessary permissions to publish to the destination
+
+3. **Check serialization**:
+   - Ensure the payload can be serialized with the configured serialization format
+   - For Avro and Protobuf, make sure the classes are properly generated
+
+#### Events Are Not Being Received
+
+1. **Check if the subscriber is available**:
+   - Verify that the subscriber is properly configured and enabled
+   - Check the logs for any errors related to the subscriber
+
+2. **Verify the source**:
+   - Make sure the source (topic, queue, etc.) exists and is accessible
+   - Check if you have the necessary permissions to subscribe to the source
+
+3. **Check event type**:
+   - Ensure the event type in the `@EventListener` annotation matches the event type being published
+
+4. **Check deserialization**:
+   - Ensure the payload can be deserialized to the expected type
+   - For Avro and Protobuf, make sure the classes are properly generated

@@ -1541,20 +1541,30 @@ The messaging system allows you to automatically publish the results of method e
 
 #### Enabling the Messaging System
 
-First, enable the messaging system in your `application.yml`:
+First, enable the messaging system in your `application.yml`. You need to enable both the overall messaging functionality and the specific messaging systems you want to use:
 
 ```yaml
 messaging:
-  enabled: true
-  # Enable specific messaging systems as needed
+  enabled: true  # Enable the overall messaging functionality
+
+  # Enable and configure specific messaging systems as needed
+  # Only the messaging systems that are explicitly enabled will be loaded
   kafka:
-    enabled: true
+    enabled: true  # Enable Kafka integration
     bootstrap-servers: localhost:9092
+
   rabbitmq:
-    enabled: true
+    enabled: true  # Enable RabbitMQ integration
     host: localhost
     port: 5672
+
+  # Other messaging systems can be configured but will not be loaded unless enabled
+  sqs:
+    enabled: false  # SQS integration is disabled and will not be loaded
+    region: us-east-1
 ```
+
+**Note**: The Spring Event Bus is a special case - it will be loaded whenever `messaging.enabled=true` since it doesn't require external configuration.
 
 #### Publishing Events with @PublishResult
 
@@ -2926,12 +2936,14 @@ public class PaymentService {
 
 ### Messaging Best Practices
 
-1. **Use meaningful event types** with a consistent naming convention (e.g., `entity.action`)
-2. **Keep events small and focused** by including only necessary data
-3. **Version your events** to allow for schema evolution
-4. **Implement proper error handling** in event listeners
-5. **Set up dead letter queues** for messages that can't be processed
-6. **Use the built-in retry mechanism** for transient failures
+1. **Only enable the messaging systems you need** to reduce memory usage and startup time
+2. **Use meaningful event types** with a consistent naming convention (e.g., `entity.action`)
+3. **Keep events small and focused** by including only necessary data
+4. **Version your events** to allow for schema evolution
+5. **Implement proper error handling** in event listeners
+6. **Set up dead letter queues** for messages that can't be processed
+7. **Use the built-in retry mechanism** for transient failures
+8. **Configure connection pools appropriately** for your expected load
 
 ### Configuration Best Practices
 
@@ -2946,14 +2958,31 @@ public class PaymentService {
 
 ### Common Issues
 
-#### Events Are Not Being Published
+#### Messaging System Not Loading
 
 1. **Check if messaging is enabled**:
    - Ensure `messaging.enabled=true` is set in your application properties
    - For the specific messaging system, ensure its enabled property is set (e.g., `messaging.kafka.enabled=true`)
+   - Remember that both conditions must be met for a messaging system to be loaded
+   - The Spring Event Bus is a special case - it will be loaded whenever `messaging.enabled=true`
 
 2. **Verify dependencies**:
    - Make sure you have the required dependencies for your messaging system (e.g., `spring-kafka` for Kafka)
+   - Check that the dependencies are not marked as provided or optional in your build file
+
+3. **Check bean loading**:
+   - Enable debug logging for Spring's auto-configuration to see if the beans are being created:
+   ```yaml
+   logging:
+     level:
+       org.springframework.boot.autoconfigure: DEBUG
+   ```
+
+#### Events Are Not Being Published
+
+1. **Check if the publisher is available**:
+   - Verify that the publisher is properly configured and enabled
+   - Check the logs for any errors related to the publisher
 
 3. **Check connection settings**:
    - Verify that connection details (hosts, ports, credentials) are correct
