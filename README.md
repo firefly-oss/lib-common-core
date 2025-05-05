@@ -1233,8 +1233,92 @@ messaging:
     # Maximum number of retries for failed operations
     max-retries: 3
 
-  # Additional messaging systems configuration...
+  # Google Cloud Pub/Sub configuration
+  google-pub-sub:
+    enabled: false
+    default-topic: events
+    project-id: ""
+    credentials-path: ""
+    credentials-json: ""
+    endpoint: ""
+    use-emulator: false
+    emulator-host: ""
+    initial-retry-delay-millis: 100
+    retry-delay-multiplier: 1.3
+    max-retry-delay-millis: 60000
+    max-attempts: 5
+
+  # Azure Service Bus configuration
+  azure-service-bus:
+    enabled: false
+    default-topic: events
+    default-queue: events
+    connection-string: ""
+    namespace: ""
+    shared-access-key-name: "RootManageSharedAccessKey"
+    shared-access-key: ""
+    use-managed-identity: false
+    client-id: ""
+    max-retries: 3
+    retry-delay-millis: 100
+    max-retry-delay-millis: 30000
+    retry-delay-multiplier: 1.5
+
+  # Redis Pub/Sub configuration
+  redis:
+    enabled: false
+    default-channel: events
+    host: localhost
+    port: 6379
+    password: ""
+    database: 0
+    timeout: 2000
+    ssl: false
+    sentinel-master: ""
+    sentinel-nodes: ""
+    cluster-nodes: ""
+    max-redirects: 3
+
+  # JMS (ActiveMQ) configuration
+  jms:
+    enabled: false
+    default-destination: events
+    use-topic: true
+    broker-url: tcp://localhost:61616
+    username: ""
+    password: ""
+    client-id: messaging-publisher
+    connection-factory-class: org.apache.activemq.ActiveMQConnectionFactory
+    transacted: false
+    acknowledge-mode: 1
+    connection-timeout: 30000
+    ssl: false
+    trust-store-path: ""
+    trust-store-password: ""
+    key-store-path: ""
+    key-store-password: ""
+
+  # AWS Kinesis configuration
+  kinesis:
+    enabled: false
+    default-stream: events
+    region: us-east-1
+    access-key-id: ""
+    secret-access-key: ""
+    session-token: ""
+    endpoint: ""
+    max-records: 100
+    initial-position: LATEST
+    initial-timestamp: ""
+    shard-iterator-type: LATEST
+    application-name: messaging-consumer
+    enhanced-fan-out: false
+    consumer-name: messaging-consumer
+    max-retries: 3
+    retry-delay-millis: 1000
 ```
+
+> **Note**: A complete example configuration with all available properties and detailed comments can be found in the `application-messaging-example.yml` file included with the library. You can use this file as a reference for configuring the messaging system.
 
 ### Cloud Config Properties
 
