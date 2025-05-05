@@ -25,7 +25,7 @@ import java.util.HashMap;
 @Slf4j
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
         prefix = "messaging",
-        name = "enabled",
+        name = {"enabled", "rabbitmq.enabled"},
         havingValue = "true",
         matchIfMissing = false
 )

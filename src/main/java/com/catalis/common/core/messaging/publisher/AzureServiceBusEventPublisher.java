@@ -30,7 +30,7 @@ import java.nio.charset.StandardCharsets;
 @Slf4j
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
         prefix = "messaging",
-        name = "enabled",
+        name = {"enabled", "azure-service-bus.enabled"},
         havingValue = "true",
         matchIfMissing = false
 )

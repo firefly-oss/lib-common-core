@@ -39,7 +39,7 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
         prefix = "messaging",
-        name = "enabled",
+        name = {"enabled", "kinesis.enabled"},
         havingValue = "true",
         matchIfMissing = false
 )

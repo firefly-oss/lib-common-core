@@ -26,7 +26,7 @@ import java.util.Map;
 @Slf4j
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
         prefix = "messaging",
-        name = "enabled",
+        name = {"enabled", "jms.enabled"},
         havingValue = "true",
         matchIfMissing = false
 )
