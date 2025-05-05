@@ -818,8 +818,9 @@ The library provides a comprehensive logging configuration that enables structur
 1. The library includes pre-configured logging settings in `application-logging.yml` and `logback-spring.xml`.
 2. The `application-logging.yml` file sets default log levels for different packages.
 3. The `logback-spring.xml` file configures the Logstash encoder for structured JSON logging.
-4. When you include this library as a dependency, these logging configurations are automatically applied.
-5. You can override any logging configuration by providing your own `application-logging.yml` or `logback-spring.xml` files.
+4. By default, logs are output as single-line JSON for production environments, while development environments (`dev` profile) use pretty-printed JSON for better readability.
+5. When you include this library as a dependency, these logging configurations are automatically applied.
+6. You can override any logging configuration by providing your own `application-logging.yml` or `logback-spring.xml` files.
 
 #### Key Components
 
@@ -836,11 +837,12 @@ The library provides a comprehensive logging configuration that enables structur
   - Defines field names and formats for consistent logging
   - Configures stack trace handling with shortened format
   - Sets up asynchronous logging for improved performance
+  - Uses single-line JSON for production and pretty-printed JSON for development (`dev` profile)
   - Located in `src/main/resources/logback-spring.xml`
   - Automatically loaded by Spring Boot's logging system
 
 - **Logstash Encoder**: Provides structured JSON logging
-  - Formats logs as JSON for easier parsing and analysis
+  - Formats logs as JSON for easier parsing and analysis (single-line in production, pretty-printed in development)
   - Includes contextual information like application name and environment
   - Supports custom fields and MDC (Mapped Diagnostic Context) values
   - Optimizes stack trace formatting
@@ -854,6 +856,30 @@ The library provides a comprehensive logging configuration that enables structur
 - **Correlation**: Transaction IDs are automatically included in logs for request tracing
 - **Performance**: Asynchronous logging minimizes impact on application performance
 - **Consistency**: Ensures consistent log format across all services
+- **Environment-Aware Formatting**: Single-line JSON in production for efficiency, pretty-printed JSON in development for readability
+
+#### JSON Formatting
+
+The logging system automatically adjusts the JSON formatting based on the active Spring profile:
+
+- **Production Environments**: Logs are output as single-line JSON for efficient storage and processing
+- **Development Environments**: When the `dev` profile is active, logs are pretty-printed with line breaks and indentation for better readability during development
+
+This dual approach ensures optimal log handling in both production and development scenarios.
+
+To activate pretty-printed logs during development, simply set the `dev` profile as active in your application:
+
+```yaml
+spring:
+  profiles:
+    active: dev
+```
+
+Or use the command line parameter when running your application:
+
+```bash
+java -jar your-application.jar --spring.profiles.active=dev
+```
 
 #### Configuration Examples
 
@@ -1181,6 +1207,8 @@ messaging:
   serialization:
     # Default serialization format (JSON, AVRO, PROTOBUF, STRING, JAVA)
     default-format: JSON
+    # Whether to pretty-print JSON output
+    pretty-print: false
     # Jackson configuration for JSON serialization
     jackson:
       # Whether to include null values in JSON
@@ -1302,10 +1330,12 @@ messaging:
   kinesis:
     enabled: false
     default-stream: events
+    # Region is required for Kinesis operations
     region: us-east-1
     access-key-id: ""
     secret-access-key: ""
     session-token: ""
+    # Optional endpoint for localstack or custom endpoints
     endpoint: ""
     max-records: 100
     initial-position: LATEST
@@ -3332,6 +3362,25 @@ public class PaymentService {
    logging:
      level:
        com.catalis.common.core.config.cloud: DEBUG
+   ```
+
+#### Null Pointer Exceptions
+
+1. **Messaging configuration issues**:
+   - Ensure all required configuration properties are set
+   - For AWS services (Kinesis, SQS), ensure the region is properly configured
+   - Add null checks for optional configuration properties
+
+2. **Client creation issues**:
+   - Check if client creation is failing due to missing configuration
+   - Verify that the client provider is returning a non-null client
+   - Enable debug logging to see detailed client creation logs
+
+3. **Enable debug logging**:
+   ```yaml
+   logging:
+     level:
+       com.catalis.common.core.messaging: DEBUG
    ```
 
 ## Building from Source

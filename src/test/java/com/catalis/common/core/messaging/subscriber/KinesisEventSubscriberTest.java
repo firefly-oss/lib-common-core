@@ -294,10 +294,9 @@ public class KinesisEventSubscriberTest {
     void shouldNotBeAvailableWhenKinesisClientIsNotAvailable() {
         // Given
         when(kinesisClientProvider.getIfAvailable()).thenReturn(null);
-        // These mocks are not used in this test because the method returns early
-        // when kinesisClientProvider.getIfAvailable() returns null
-        // lenient().when(messagingProperties.getKinesisConfig(anyString())).thenReturn(kinesisConfig);
-        // lenient().when(kinesisConfig.isEnabled()).thenReturn(true);
+        // We need to mock these because the isAvailable method checks both conditions
+        lenient().when(messagingProperties.getKinesisConfig(anyString())).thenReturn(kinesisConfig);
+        lenient().when(kinesisConfig.isEnabled()).thenReturn(false);
 
         // When
         boolean available = subscriber.isAvailable();

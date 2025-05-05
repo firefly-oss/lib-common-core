@@ -218,6 +218,12 @@ public class KinesisEventPublisher implements EventPublisher, ConnectionAwarePub
             // Get the Kinesis configuration for this connection ID
             MessagingProperties.KinesisConfig config = messagingProperties.getKinesisConfig(connectionId);
 
+            // Check if region is provided
+            if (config.getRegion() == null || config.getRegion().isEmpty()) {
+                log.error("Region is not configured for Kinesis connection {}", connectionId);
+                return null;
+            }
+
             KinesisAsyncClientBuilder builder = KinesisAsyncClient.builder()
                     .region(Region.of(config.getRegion()));
 

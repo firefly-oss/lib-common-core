@@ -207,7 +207,7 @@ public class KinesisEventSubscriber implements EventSubscriber, ConnectionAwareS
             }
 
             // Set endpoint if provided
-            if (!config.getEndpoint().isEmpty()) {
+            if (config.getEndpoint() != null && !config.getEndpoint().isEmpty()) {
                 builder.endpointOverride(URI.create(config.getEndpoint()));
             }
 
