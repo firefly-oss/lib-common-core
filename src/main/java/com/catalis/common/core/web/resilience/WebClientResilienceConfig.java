@@ -11,6 +11,7 @@ import io.github.resilience4j.timelimiter.TimeLimiterRegistry;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import java.time.Duration;
 
@@ -61,6 +62,7 @@ public class WebClientResilienceConfig {
      * @return the RetryRegistry
      */
     @Bean
+    @Primary
     public RetryRegistry webClientRetryRegistry() {
         RetryConfig retryConfig = RetryConfig.custom()
                 .maxAttempts(properties.getRetry().getMaxAttempts())

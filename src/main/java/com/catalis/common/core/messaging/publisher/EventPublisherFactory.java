@@ -5,6 +5,7 @@ import com.catalis.common.core.messaging.config.MessagingProperties;
 import com.catalis.common.core.messaging.resilience.ResilientEventPublisherFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -127,6 +128,10 @@ public class EventPublisherFactory {
      * @return the created publisher, or null if not available or properly configured
      */
     private EventPublisher createPublisher(PublisherType publisherType, String connectionId) {
+        log.info("=== CREATING PUBLISHER ===");
+        log.info("Publisher Type: {}", publisherType);
+        log.info("Connection ID: {}", connectionId);
+
         if (publisherMap == null) {
             initPublisherMap();
         }
@@ -144,35 +149,54 @@ public class EventPublisherFactory {
             case KINESIS -> publisherMap.get(KinesisEventPublisher.class);
         };
 
+        log.info("Base publisher found: {}", basePublisher != null ? basePublisher.getClass().getSimpleName() : "null");
+
         if (basePublisher == null) {
             log.warn("Publisher of type {} is not available", publisherType);
             return null;
         }
 
-        if (!basePublisher.isAvailable()) {
+        log.info("Checking if publisher is available...");
+        boolean isAvailable = basePublisher.isAvailable();
+        log.info("Publisher availability: {}", isAvailable);
+
+        if (!isAvailable) {
             log.warn("Publisher of type {} is not properly configured", publisherType);
             return null;
         }
 
         // Configure the publisher with the specified connection ID
         if (basePublisher instanceof ConnectionAwarePublisher connectionAwarePublisher) {
+            log.info("Setting connection ID: {}", connectionId);
             connectionAwarePublisher.setConnectionId(connectionId);
         }
 
         // Wrap the publisher with resilience capabilities
+        log.info("Creating resilient publisher wrapper...");
         EventPublisher publisher = resilientFactory.createResilientPublisher(
                 basePublisher,
                 publisherType.name().toLowerCase() + "_" + connectionId
         );
 
+        log.info("Publisher created successfully: {}", publisher.getClass().getSimpleName());
         return publisher;
     }
 
     private void initPublisherMap() {
+        log.info("Initializing publisher map with {} publishers", publishers.size());
+        publishers.forEach(publisher ->
+                log.info("Available publisher: {} - {}", publisher.getClass().getSimpleName(), publisher.getClass())
+        );
+
         publisherMap = publishers.stream()
                 .collect(Collectors.toMap(
-                        EventPublisher::getClass,
+                        publisher -> (Class<? extends EventPublisher>) AopUtils.getTargetClass(publisher),
                         Function.identity()
                 ));
+
+        log.info("Publisher map initialized with {} entries", publisherMap.size());
+        publisherMap.forEach((clazz, publisher) ->
+                log.info("Final mapping: {} -> {}", clazz.getSimpleName(), publisher)
+        );
     }
 }

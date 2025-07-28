@@ -14,7 +14,6 @@ import reactor.core.publisher.Mono;
  * but since Spring's ApplicationEventPublisher is internal to the application, the connection ID
  * is not used for any configuration lookup.
  */
-@Component
 @RequiredArgsConstructor
 @Slf4j
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(

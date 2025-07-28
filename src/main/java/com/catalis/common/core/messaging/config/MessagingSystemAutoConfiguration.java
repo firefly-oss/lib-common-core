@@ -37,10 +37,10 @@ public class MessagingSystemAutoConfiguration {
      * @param properties messaging properties
      * @return a Kafka event publisher
      */
-    @Bean
+    @Bean("kafkaEventPublisher")
     @Lazy
     @ConditionalOnProperty(prefix = "messaging.kafka", name = "enabled", havingValue = "true")
-    public EventPublisher kafkaEventPublisher(ObjectProvider<KafkaTemplate<String, Object>> kafkaTemplateProvider, 
+    public KafkaEventPublisher kafkaEventPublisher(ObjectProvider<KafkaTemplate<String, Object>> kafkaTemplateProvider,
                                              MessagingProperties properties) {
         return new KafkaEventPublisher(kafkaTemplateProvider, properties);
     }

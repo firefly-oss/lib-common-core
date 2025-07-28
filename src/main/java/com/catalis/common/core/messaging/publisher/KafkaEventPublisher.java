@@ -20,7 +20,6 @@ import reactor.core.publisher.Mono;
  * interface. Each connection is identified by a connection ID, which is used to look up the
  * appropriate configuration in {@link MessagingProperties}.
  */
-@Component
 @RequiredArgsConstructor
 @Slf4j
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
@@ -39,17 +38,27 @@ public class KafkaEventPublisher implements EventPublisher, ConnectionAwarePubli
     @Override
     public Mono<Void> publish(String destination, String eventType, Object payload, String transactionId) {
         return Mono.defer(() -> {
+            log.info("=== KAFKA PUBLISH ATTEMPT ===");
+            log.info("Destination: {}", destination);
+            log.info("Event Type: {}", eventType);
+            log.info("Payload: {}", payload);
+            log.info("Transaction ID: {}", transactionId);
+            log.info("Connection ID: {}", connectionId);
+
             KafkaTemplate<String, Object> kafkaTemplate = kafkaTemplateProvider.getIfAvailable();
+            log.info("KafkaTemplate available: {}", kafkaTemplate != null);
+
             if (kafkaTemplate == null) {
                 log.warn("KafkaTemplate is not available. Event will not be published to Kafka.");
                 return Mono.empty();
             }
 
             if (destination == null || destination.isEmpty()) {
+                log.error("Destination is null or empty");
                 return Mono.error(new IllegalArgumentException("Destination cannot be null or empty"));
             }
 
-            log.debug("Publishing event to Kafka: topic={}, type={}, transactionId={}",
+            log.info("Publishing event to Kafka: topic={}, type={}, transactionId={}",
                     destination, eventType, transactionId);
 
             try {
@@ -68,10 +77,13 @@ public class KafkaEventPublisher implements EventPublisher, ConnectionAwarePubli
                 }
 
                 Message<Object> message = messageBuilder.build();
+                log.info("Message built: {}", message);
 
                 // Send the message and return a completed Mono
-                kafkaTemplate.send(message);
-                log.debug("Event sent to Kafka: topic={}, type={}", destination, eventType);
+                var sendResult = kafkaTemplate.send(message);
+                log.info("Send result: {}", sendResult);
+
+                log.info("Event sent to Kafka: topic={}, type={}", destination, eventType);
                 return Mono.empty();
             } catch (Exception e) {
                 log.error("Failed to publish event to Kafka: {}", e.getMessage(), e);
@@ -138,8 +150,17 @@ public class KafkaEventPublisher implements EventPublisher, ConnectionAwarePubli
 
     @Override
     public boolean isAvailable() {
-        return kafkaTemplateProvider.getIfAvailable() != null &&
-               messagingProperties.getKafkaConfig(connectionId).isEnabled();
+        KafkaTemplate<String, Object> template = kafkaTemplateProvider.getIfAvailable();
+        boolean templateAvailable = template != null;
+        boolean configEnabled = messagingProperties.getKafkaConfig(connectionId).isEnabled();
+
+        log.info("=== KAFKA AVAILABILITY CHECK ===");
+        log.info("Connection ID: {}", connectionId);
+        log.info("KafkaTemplate available: {}", templateAvailable);
+        log.info("Config enabled: {}", configEnabled);
+        log.info("Overall available: {}", templateAvailable && configEnabled);
+
+        return templateAvailable && configEnabled;
     }
 
     @Override

@@ -8,6 +8,7 @@ import io.github.resilience4j.timelimiter.TimeLimiterRegistry;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -59,7 +60,7 @@ public class WebClientConfig {
 
     public WebClientConfig(
             CircuitBreakerRegistry circuitBreakerRegistry,
-            RetryRegistry retryRegistry,
+            @Qualifier("webClientRetryRegistry") RetryRegistry retryRegistry,
             TimeLimiterRegistry timeLimiterRegistry,
             BulkheadRegistry bulkheadRegistry,
             ObjectProvider<MeterRegistry> meterRegistryProvider,
