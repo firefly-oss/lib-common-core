@@ -222,6 +222,10 @@
         <!-- Micrometer / Tracing -->
         <dependency>
             <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
             <optional>true</optional>
         </dependency>
@@ -233,6 +237,18 @@
         <dependency>
             <groupId>io.zipkin.reporter2</groupId>
             <artifactId>zipkin-reporter-brave</artifactId>
+            <optional>true</optional>
+        </dependency>
+        
+        <!-- Additional Micrometer integrations -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
             <optional>true</optional>
         </dependency>
 
