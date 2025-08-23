@@ -1,3 +1,4 @@
+com.catalis.common.core.config.FireflyBannerConfig
 com.catalis.common.core.config.WebFluxConfig
 com.catalis.common.core.config.WebClientConfig
 com.catalis.common.core.config.WebClientProperties
