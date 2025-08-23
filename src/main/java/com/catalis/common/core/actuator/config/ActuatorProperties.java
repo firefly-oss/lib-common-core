@@ -42,6 +42,11 @@ public class ActuatorProperties {
     private final Health health = new Health();
 
     /**
+     * Extended metrics configuration.
+     */
+    private final ExtendedMetrics extendedMetrics = new ExtendedMetrics();
+
+    /**
      * Endpoints configuration properties.
      */
     @Getter
@@ -255,6 +260,185 @@ public class ActuatorProperties {
              * Path to check for disk space.
              */
             private String path = ".";
+        }
+    }
+
+    /**
+     * Extended metrics configuration properties.
+     */
+    @Getter
+    @Setter
+    public static class ExtendedMetrics {
+        /**
+         * JVM metrics configuration.
+         */
+        private final Jvm jvm = new Jvm();
+
+        /**
+         * Database metrics configuration.
+         */
+        private final Database database = new Database();
+
+        /**
+         * Thread pool metrics configuration.
+         */
+        private final ThreadPool threadpool = new ThreadPool();
+
+        /**
+         * HTTP client metrics configuration.
+         */
+        private final HttpClient httpClient = new HttpClient();
+
+        /**
+         * Cache metrics configuration.
+         */
+        private final Cache cache = new Cache();
+
+        /**
+         * Application metrics configuration.
+         */
+        private final Application application = new Application();
+
+        /**
+         * JVM metrics configuration properties.
+         */
+        @Getter
+        @Setter
+        public static class Jvm {
+            /**
+             * Whether to enable JVM metrics.
+             */
+            private boolean enabled = true;
+
+            /**
+             * Whether to enable memory metrics.
+             */
+            private boolean memory = true;
+
+            /**
+             * Whether to enable GC metrics.
+             */
+            private boolean gc = true;
+
+            /**
+             * Whether to enable thread metrics.
+             */
+            private boolean threads = true;
+
+            /**
+             * Whether to enable class loader metrics.
+             */
+            private boolean classloader = true;
+        }
+
+        /**
+         * Database metrics configuration properties.
+         */
+        @Getter
+        @Setter
+        public static class Database {
+            /**
+             * Whether to enable database health indicators.
+             */
+            private boolean enabled = true;
+
+            /**
+             * Connection timeout for health checks (in seconds).
+             */
+            private int connectionTimeout = 5;
+
+            /**
+             * Whether to include connection pool metrics.
+             */
+            private boolean includePoolMetrics = true;
+        }
+
+        /**
+         * Thread pool metrics configuration properties.
+         */
+        @Getter
+        @Setter
+        public static class ThreadPool {
+            /**
+             * Whether to enable thread pool metrics.
+             */
+            private boolean enabled = true;
+
+            /**
+             * Whether to include executor service metrics.
+             */
+            private boolean includeExecutorServices = true;
+
+            /**
+             * Whether to include ForkJoinPool metrics.
+             */
+            private boolean includeForkJoinPool = true;
+        }
+
+        /**
+         * HTTP client metrics configuration properties.
+         */
+        @Getter
+        @Setter
+        public static class HttpClient {
+            /**
+             * Whether to enable HTTP client metrics.
+             */
+            private boolean enabled = true;
+
+            /**
+             * Whether to perform connectivity tests.
+             */
+            private boolean connectivityTest = false;
+
+            /**
+             * Timeout for connectivity tests (in seconds).
+             */
+            private int connectivityTimeout = 5;
+        }
+
+        /**
+         * Cache metrics configuration properties.
+         */
+        @Getter
+        @Setter
+        public static class Cache {
+            /**
+             * Whether to enable cache health indicators.
+             */
+            private boolean enabled = true;
+
+            /**
+             * Whether to perform operational tests on caches.
+             */
+            private boolean operationalTest = true;
+
+            /**
+             * Whether to include cache-specific metrics.
+             */
+            private boolean includeSpecificMetrics = true;
+        }
+
+        /**
+         * Application metrics configuration properties.
+         */
+        @Getter
+        @Setter
+        public static class Application {
+            /**
+             * Whether to enable application metrics.
+             */
+            private boolean enabled = true;
+
+            /**
+             * Whether to track startup phases.
+             */
+            private boolean startupPhases = true;
+
+            /**
+             * Whether to include enhanced info contributor.
+             */
+            private boolean enhancedInfo = true;
         }
     }
 }
