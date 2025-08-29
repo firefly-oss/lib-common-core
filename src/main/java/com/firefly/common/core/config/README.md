@@ -510,7 +510,7 @@ Enable debug logging for configuration components:
 ```yaml
 logging:
   level:
-    com.catalis.common.core.config: DEBUG
+    com.firefly.common.core.config: DEBUG
     org.springframework.cloud.config: DEBUG
     org.springframework.cloud.netflix.eureka: DEBUG
     org.springframework.web.reactive: DEBUG

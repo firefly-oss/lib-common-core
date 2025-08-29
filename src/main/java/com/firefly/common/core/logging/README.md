@@ -32,7 +32,7 @@ The Firefly Common Core logging utilities provide advanced structured logging ca
 The main utility class providing structured logging capabilities:
 
 ```java
-import com.catalis.common.core.logging.LoggingUtils;
+import com.firefly.common.core.logging.LoggingUtils;
 
 // Simple structured log entry
 Map<String, Object> logEntry = LoggingUtils.structuredLog(

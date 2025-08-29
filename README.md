@@ -62,7 +62,7 @@ A comprehensive Spring Boot 3.2.2 library providing enterprise-grade common comp
 
 ```xml
 <dependency>
-    <groupId>com.catalis</groupId>
+    <groupId>com.firefly</groupId>
     <artifactId>lib-common-core</artifactId>
     <version>1.0.0-SNAPSHOT</version>
 </dependency>
@@ -72,7 +72,7 @@ A comprehensive Spring Boot 3.2.2 library providing enterprise-grade common comp
 
 #### Structured Logging
 ```java
-import com.catalis.common.core.logging.LoggingUtils;
+import com.firefly.common.core.logging.LoggingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,7 +95,7 @@ LoggingUtils.withMdc("requestId", "req-123", () -> {
 
 #### Messaging
 ```java
-import com.catalis.common.core.messaging.MessageHeaders;
+import com.firefly.common.core.messaging.MessageHeaders;
 
 // Create message headers
 MessageHeaders headers = MessageHeaders.builder()
@@ -157,24 +157,24 @@ management:
 
 The library is organized into modular packages:
 
-- **`com.catalis.common.core.config`**: Configuration management and auto-configuration
-  - 📖 [Detailed Configuration Documentation](src/main/java/com/catalis/common/core/config/README.md)
-- **`com.catalis.common.core.web`**: Web client and resilience components
-- **`com.catalis.common.core.actuator`**: Enhanced actuator endpoints and health checks
-  - 📖 [Detailed Actuator Documentation](src/main/java/com/catalis/common/core/actuator/README.md)
-- **`com.catalis.common.core.messaging`**: Comprehensive messaging framework
-  - 📖 [Detailed Messaging Documentation](src/main/java/com/catalis/common/core/messaging/README.md)
-- **`com.catalis.common.core.logging`**: Advanced logging utilities
-  - 📖 [Detailed Logging Documentation](src/main/java/com/catalis/common/core/logging/README.md)
+- **`com.firefly.common.core.config`**: Configuration management and auto-configuration
+  - 📖 [Detailed Configuration Documentation](src/main/java/com/firefly/common/core/config/README.md)
+- **`com.firefly.common.core.web`**: Web client and resilience components
+- **`com.firefly.common.core.actuator`**: Enhanced actuator endpoints and health checks
+  - 📖 [Detailed Actuator Documentation](src/main/java/com/firefly/common/core/actuator/README.md)
+- **`com.firefly.common.core.messaging`**: Comprehensive messaging framework
+  - 📖 [Detailed Messaging Documentation](src/main/java/com/firefly/common/core/messaging/README.md)
+- **`com.firefly.common.core.logging`**: Advanced logging utilities
+  - 📖 [Detailed Logging Documentation](src/main/java/com/firefly/common/core/logging/README.md)
 
 ## Component Documentation
 
 For comprehensive guides and examples for each component:
 
-- **[🔧 Configuration Management](src/main/java/com/catalis/common/core/config/README.md)** - Cloud config, service discovery, and web configuration
-- **[📊 Actuator Components](src/main/java/com/catalis/common/core/actuator/README.md)** - Health indicators, metrics, and monitoring
-- **[📨 Messaging Framework](src/main/java/com/catalis/common/core/messaging/README.md)** - Multi-platform messaging with Kafka, AWS SQS, Azure Service Bus, and more
-- **[🔍 Logging Utilities](src/main/java/com/catalis/common/core/logging/README.md)** - Structured logging, MDC support, and performance optimization
+- **[🔧 Configuration Management](src/main/java/com/firefly/common/core/config/README.md)** - Cloud config, service discovery, and web configuration
+- **[📊 Actuator Components](src/main/java/com/firefly/common/core/actuator/README.md)** - Health indicators, metrics, and monitoring
+- **[📨 Messaging Framework](src/main/java/com/firefly/common/core/messaging/README.md)** - Multi-platform messaging with Kafka, AWS SQS, Azure Service Bus, and more
+- **[🔍 Logging Utilities](src/main/java/com/firefly/common/core/logging/README.md)** - Structured logging, MDC support, and performance optimization
 
 ## Requirements
 
@@ -203,7 +203,7 @@ This library is maintained by the **Firefly Team** at [firefly-oss](https://gith
 ### Development
 - **GitHub Organization**: [firefly-oss](https://github.com/firefly-oss)
 - **Team**: Firefly Team
-- **Package Structure**: The library uses `com.catalis.*` package naming for historical reasons, but the project is part of the Firefly ecosystem.
+- **Package Structure**: The library uses `com.firefly.*` package naming for historical reasons, but the project is part of the Firefly ecosystem.
 
 ## License
 
