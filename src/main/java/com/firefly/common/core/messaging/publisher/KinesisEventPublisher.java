@@ -88,7 +88,7 @@ public class KinesisEventPublisher implements EventPublisher, ConnectionAwarePub
                         payloadStr
                 );
 
-                // Create a partition key (random UUID or based on eventType)
+                // Create a partition key (random Long or based on eventType)
                 String partitionKey = eventType != null ? eventType : UUID.randomUUID().toString();
 
                 // Create the request
@@ -141,7 +141,7 @@ public class KinesisEventPublisher implements EventPublisher, ConnectionAwarePub
                 // Serialize the payload
                 byte[] serializedPayload = payload != null ? serializer.serialize(payload) : new byte[0];
 
-                // Create a partition key (random UUID or based on eventType)
+                // Create a partition key (random Long or based on eventType)
                 String partitionKey = eventType != null ? eventType : UUID.randomUUID().toString();
 
                 // Create a metadata wrapper for the payload
