@@ -122,7 +122,7 @@ public class MessagingConfig {
 
 #### Messaging Configuration
 ```yaml
-catalis:
+firefly:
   messaging:
     enabled: true
     kafka:
@@ -134,7 +134,7 @@ catalis:
 
 #### Logging Configuration
 ```yaml
-catalis:
+firefly:
   logging:
     structured: true
     max-recursion-depth: 10

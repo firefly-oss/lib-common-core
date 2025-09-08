@@ -48,7 +48,7 @@ public class CustomMessagingHealth extends AbstractMessagingHealthIndicator {
 
 #### Kafka Health Indicator
 ```java
-@ConditionalOnProperty(name = "catalis.messaging.kafka.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "firefly.messaging.kafka.enabled", havingValue = "true")
 @Component
 public class KafkaHealthIndicator implements HealthIndicator {
     
@@ -135,7 +135,7 @@ management:
 
 ### Custom Actuator Configuration
 ```yaml
-catalis:
+firefly:
   actuator:
     # Enhanced metrics configuration
     metrics:
@@ -348,7 +348,7 @@ Define alerting rules for critical metrics:
 
 ```yaml
 groups:
-  - name: catalis.rules
+  - name: firefly.rules
     rules:
       - alert: HighErrorRate
         expr: rate(http_client_requests_total{status=~"5.."}[5m]) > 0.1

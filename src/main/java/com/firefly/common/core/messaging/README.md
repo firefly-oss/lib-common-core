@@ -75,7 +75,7 @@ Proper resource cleanup:
 
 ### Kafka Configuration
 ```yaml
-catalis:
+firefly:
   messaging:
     kafka:
       bootstrap-servers: localhost:9092
@@ -90,7 +90,7 @@ catalis:
 
 ### AWS SQS Configuration
 ```yaml
-catalis:
+firefly:
   messaging:
     aws:
       sqs:
@@ -100,7 +100,7 @@ catalis:
 
 ### Azure Service Bus Configuration
 ```yaml
-catalis:
+firefly:
   messaging:
     azure:
       servicebus:

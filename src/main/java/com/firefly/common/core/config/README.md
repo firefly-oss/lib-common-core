@@ -28,7 +28,7 @@ The Firefly Common Core configuration management provides auto-configuration for
 Automatic setup of Spring Cloud Config client:
 
 ```java
-@ConfigurationProperties(prefix = "catalis.config.cloud")
+@ConfigurationProperties(prefix = "firefly.config.cloud")
 @Data
 public class CloudConfigProperties {
     
@@ -71,7 +71,7 @@ public class CloudConfigProperties {
 
 ### Configuration
 ```yaml
-catalis:
+firefly:
   config:
     cloud:
       enabled: true
@@ -117,7 +117,7 @@ public class DynamicConfiguration {
 
 ### Eureka Configuration
 ```java
-@ConfigurationProperties(prefix = "catalis.registry.eureka")
+@ConfigurationProperties(prefix = "firefly.registry.eureka")
 @Data
 public class ServiceRegistryProperties {
     
@@ -196,7 +196,7 @@ public class ServiceRegistryHelper {
 
 #### Eureka Configuration
 ```yaml
-catalis:
+firefly:
   registry:
     eureka:
       enabled: true
@@ -212,15 +212,15 @@ eureka:
     register-with-eureka: true
     fetch-registry: true
     service-url:
-      defaultZone: ${catalis.registry.eureka.service-url[0]}
+      defaultZone: ${firefly.registry.eureka.service-url[0]}
   instance:
-    hostname: ${catalis.registry.eureka.hostname}
-    health-check-url-path: ${catalis.registry.eureka.health-check-url-path}
+    hostname: ${firefly.registry.eureka.hostname}
+    health-check-url-path: ${firefly.registry.eureka.health-check-url-path}
 ```
 
 #### Consul Configuration  
 ```yaml
-catalis:
+firefly:
   registry:
     consul:
       enabled: true
@@ -235,12 +235,12 @@ catalis:
 spring:
   cloud:
     consul:
-      host: ${catalis.registry.consul.host}
-      port: ${catalis.registry.consul.port}
+      host: ${firefly.registry.consul.host}
+      port: ${firefly.registry.consul.port}
       discovery:
-        enabled: ${catalis.registry.consul.discovery.enabled}
-        register: ${catalis.registry.consul.discovery.register}
-        health-check-path: ${catalis.registry.consul.discovery.health-check-path}
+        enabled: ${firefly.registry.consul.discovery.enabled}
+        register: ${firefly.registry.consul.discovery.register}
+        health-check-path: ${firefly.registry.consul.discovery.health-check-path}
 ```
 
 ## Web Configuration
@@ -304,7 +304,7 @@ public class WebClientConfig {
 Configuration for HTTP client behavior:
 
 ```java
-@ConfigurationProperties(prefix = "catalis.web.client")
+@ConfigurationProperties(prefix = "firefly.web.client")
 @Data
 public class WebClientProperties {
     
@@ -463,7 +463,7 @@ public class ConfigController {
 #### Configuration Server Connection
 ```yaml
 # Increase timeout for slow networks
-catalis:
+firefly:
   config:
     cloud:
       timeout: 30s
@@ -481,7 +481,7 @@ spring:
 #### Service Discovery Issues  
 ```yaml
 # Increase lease renewal for unstable networks
-catalis:
+firefly:
   registry:
     eureka:
       lease-renewal-interval: 15s
@@ -496,7 +496,7 @@ eureka:
 #### WebClient Timeouts
 ```yaml
 # Adjust timeouts for slow services
-catalis:
+firefly:
   web:
     client:
       connect-timeout: 5s

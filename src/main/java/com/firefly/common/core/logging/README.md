@@ -99,7 +99,7 @@ LoggingUtils.log("Order processing failed")
 
 ### Application Properties
 ```yaml
-catalis:
+firefly:
   logging:
     # Enable structured logging
     structured: true
