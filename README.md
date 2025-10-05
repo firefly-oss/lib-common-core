@@ -14,21 +14,6 @@ This library is developed by **Firefly Software Solutions Inc** and released und
 
 The Firefly Common Core library is part of the Firefly OpenCore Banking Platform architecture, specifically designed for the core-infrastructure layer. It complements the [lib-common-domain](../lib-common-domain/) library which handles domain-layer concerns.
 
-### Firefly OpenCore Banking Platform Context
-
-```
-Firefly OpenCore Banking Platform
-├── Domain Layer (lib-common-domain)
-│   ├── Domain Models & Entities
-│   ├── Business Logic & Rules
-│   └── Domain Events
-└── Infrastructure Layer (lib-common-core) ← This Library
-    ├── Messaging Abstraction
-    ├── Configuration Management
-    ├── WebClient Enhancements
-    ├── Observability Tools
-    └── Integration Utilities
-```
 
 ## Features
 
