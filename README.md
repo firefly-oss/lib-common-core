@@ -1,65 +1,67 @@
 # Firefly Common Core Library
 
-A comprehensive Spring Boot 3.2.2 library providing enterprise-grade common components for reactive microservices architecture. This library offers messaging, logging, configuration, monitoring, and resilience capabilities with multi-cloud platform support.
+**Copyright (c) 2025 Firefly Software Solutions Inc**
+
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Java Version](https://img.shields.io/badge/Java-21%2B-orange)](https://openjdk.java.net/projects/jdk/21/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.2-green)](https://spring.io/projects/spring-boot)
+
+A Spring Boot library providing utilities, configuration, and shared infrastructure components for the **core-infrastructure layer** of the **Firefly OpenCore Banking Platform**.
+
+This library is developed by **Firefly Software Solutions Inc** and released under the Apache 2.0 License.
+
+## Overview
+
+The Firefly Common Core library is part of the Firefly OpenCore Banking Platform architecture, specifically designed for the core-infrastructure layer. It complements the [lib-common-domain](../lib-common-domain/) library which handles domain-layer concerns.
+
+### Firefly OpenCore Banking Platform Context
+
+```
+Firefly OpenCore Banking Platform
+├── Domain Layer (lib-common-domain)
+│   ├── Domain Models & Entities
+│   ├── Business Logic & Rules
+│   └── Domain Events
+└── Infrastructure Layer (lib-common-core) ← This Library
+    ├── Messaging Abstraction
+    ├── Configuration Management
+    ├── WebClient Enhancements
+    ├── Observability Tools
+    └── Integration Utilities
+```
 
 ## Features
 
-### 🚀 Reactive Web Framework
-- **WebFlux Configuration**: Pre-configured reactive web components
-- **WebClient Integration**: Enhanced HTTP client with auto-configuration
-- **Resilience Patterns**: Circuit breakers, retry mechanisms, and timeout handling
-- **Filter Configuration**: Custom web filters for request/response processing
+### Messaging System
+- **Unified EventPublisher API** supporting multiple messaging providers
+- **Supported providers**: Kafka, RabbitMQ, AWS SQS, Google Pub/Sub, Azure Service Bus, Redis Pub/Sub, JMS/ActiveMQ, AWS Kinesis
+- **Connection-aware publishers** for multiple connections per provider
+- **Reactive messaging** built on Project Reactor
+- **Resilience patterns** with Resilience4j integration
 
-### 📨 Enterprise Messaging Framework
-- **Multi-Platform Support**: Kafka, ActiveMQ, AMQP, Redis, AWS SQS, Google Pub/Sub, Azure Service Bus
-- **Message Headers**: Standard distributed system headers (transaction ID, event type, source service, timestamp)
-- **Publisher/Subscriber Pattern**: Reactive message publishing and subscription
-- **Event Processing**: Event-driven architecture support with processors and handlers
-- **Serialization Support**: JSON (Jackson), Avro, and Protobuf serialization
-- **Health Monitoring**: Built-in health checks for messaging components
-- **Metrics & Monitoring**: Comprehensive messaging metrics collection
-- **Error Handling**: Robust error handling and recovery mechanisms
-- **Resilience**: Circuit breakers and retry policies for messaging operations
-- **AOP Integration**: Aspect-oriented programming for cross-cutting messaging concerns
-- **Graceful Shutdown**: Proper resource cleanup and message processing completion
+### Configuration Management
+- **Spring Cloud Config** integration
+- **Service discovery** with Eureka and Consul support
+- **Multi-environment** configuration management
 
-### 🔍 Advanced Logging
-- **Structured Logging**: JSON-based structured log output with Logstash integration
-- **MDC Support**: Mapped Diagnostic Context for request tracing (user ID, request ID, correlation ID)
-- **Fluent Builder API**: Easy-to-use logging builder pattern
-- **Performance Optimized**: JSON validation caching and recursive processing limits
-- **Metrics Collection**: Logging performance metrics and cache statistics
-- **Actuator Integration**: Spring Boot Actuator endpoints for logging management
+### Enhanced WebClient
+- **Reactive WebClient** with connection pooling
+- **Service registry integration** for load balancing
+- **SSL and HTTP/2** support
 
-### ⚙️ Configuration Management
-- **Spring Cloud Config**: Centralized configuration management
-- **Service Discovery**: Support for Eureka and Consul service registries
-- **Auto-Configuration**: Automatic setup for cloud and registry components
-- **Properties Binding**: Type-safe configuration properties
+### Observability & Monitoring
+- **Health indicators** for messaging and external systems
+- **Micrometer metrics** with Prometheus integration
+- **Actuator enhancements** for production monitoring
 
-### 📊 Monitoring & Observability
-- **Spring Boot Actuator**: Enhanced health endpoints and metrics
-- **Micrometer Integration**: Metrics collection with Prometheus support
-- **Distributed Tracing**: Zipkin integration for request tracing
-- **Custom Health Indicators**: Messaging and component-specific health checks
-- **Performance Monitoring**: HTTP client metrics and caching statistics
+### Integration Support
+- **CQRS integration** with lib-common-cqrs
+- **Transactional engine** support with lib-transactional-engine
+- **Reactive patterns** throughout the library
 
-### ☁️ Multi-Cloud Support
-- **AWS Integration**: DynamoDB, CloudWatch, Kinesis, SQS support
-- **Google Cloud**: Pub/Sub messaging integration
-- **Azure**: Service Bus messaging support
-- **Resilience4j**: Circuit breakers, retry, rate limiting, and bulkhead patterns
+## 📦 Installation
 
-### 🔧 Developer Experience
-- **OpenAPI/Swagger**: API documentation generation
-- **Lombok Integration**: Reduced boilerplate code
-- **MapStruct Support**: Object mapping utilities
-- **Comprehensive Testing**: Extensive test coverage with Mockito and Reactor Test
-
-## Quick Start
-
-### Maven Dependency
-
+### Maven
 ```xml
 <dependency>
     <groupId>com.firefly</groupId>
@@ -68,149 +70,519 @@ A comprehensive Spring Boot 3.2.2 library providing enterprise-grade common comp
 </dependency>
 ```
 
-### Basic Usage
-
-#### Structured Logging
-```java
-import com.firefly.common.core.logging.LoggingUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-Logger logger = LoggerFactory.getLogger(MyClass.class);
-
-// Simple structured logging
-LoggingUtils.log("User action performed")
-    .with("userId", "12345")
-    .with("action", "login")
-    .with("timestamp", Instant.now())
-    .info(logger);
-
-// MDC context logging
-LoggingUtils.withMdc("requestId", "req-123", () -> {
-    // All logs within this block will include requestId in MDC
-    logger.info("Processing request");
-    return processRequest();
-});
+### Gradle
+```gradle
+implementation 'com.firefly:lib-common-core:1.0.0-SNAPSHOT'
 ```
 
-#### Messaging
-```java
-import com.firefly.common.core.messaging.MessageHeaders;
+## 🚀 Quick Start
 
-// Create message headers
-MessageHeaders headers = MessageHeaders.builder()
-    .transactionId("txn-456")
-    .eventType("USER_CREATED")
-    .sourceService("user-service")
-    .timestamp()
-    .header("customHeader", "value")
-    .build();
+### 1. Enable Core Features
+
+```yaml
+# application.yml
+messaging:
+  enabled: true
+  kafka:
+    enabled: true
+    bootstrap-servers: localhost:9092
+    default-topic: events
+  
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+spring:
+  application:
+    name: my-service
 ```
 
-#### Configuration
+### 2. Publish Messages
+
 ```java
-@ConfigurationProperties(prefix = "app.messaging")
-@Component
-public class MessagingConfig {
-    // Auto-configured from application properties
+@RestController
+public class EventController {
+    
+    @PostMapping("/events")
+    @PublishResult(
+        publisherType = KAFKA,
+        destination = "user-events", 
+        eventType = "user.created"
+    )
+    public Mono<UserCreatedEvent> createUser(@RequestBody CreateUserRequest request) {
+        // Your business logic here
+        return Mono.just(new UserCreatedEvent(request.getUserId(), request.getEmail()));
+    }
 }
 ```
 
-## Configuration
+### 3. Handle Messages
 
-### Application Properties Examples
+```java
+@Component
+public class UserEventHandler {
+    
+    @EventListener
+    public Mono<Void> handleUserCreated(@EventPayload UserCreatedEvent event, 
+                                       @EventHeaders Map<String, Object> headers) {
+        log.info("User created: {} with transaction ID: {}", 
+                 event.getUserId(), headers.get("transactionId"));
+        
+        // Process the event
+        return userService.processNewUser(event);
+    }
+}
+```
 
-#### Messaging Configuration
+### 4. Enhanced WebClient Usage
+
+```java
+@Service
+public class ExternalServiceClient {
+    
+    private final WebClient webClient;
+    
+    public ExternalServiceClient(WebClient.Builder webClientBuilder) {
+        this.webClient = webClientBuilder.build();
+    }
+    
+    public Mono<ResponseData> callExternalService(RequestData request) {
+        return webClient.post()
+            .uri("/api/external")
+            .bodyValue(request)
+            .retrieve()
+            .bodyToMono(ResponseData.class);
+    }
+}
+```
+
+## 📋 Table of Contents
+
+- [Architecture Overview](docs/ARCHITECTURE.md)
+- [Quick Start Guide](docs/QUICKSTART.md) 
+- [Configuration Reference](docs/CONFIGURATION.md)
+- [API Documentation](docs/API.md)
+- [Integrations Guide](docs/INTEGRATIONS.md)
+- [Examples and Use Cases](docs/EXAMPLES.md)
+- [Migration Guide](docs/MIGRATION.md)
+- [Contributing Guidelines](CONTRIBUTING.md)
+
+## 🏗️ Architecture
+
+The library is organized into several key modules:
+
+### Core Modules
+
+| Module | Description | Key Classes |
+|--------|-------------|-------------|
+| **Messaging** | Multi-provider messaging system | `EventPublisher`, `EventPublisherFactory`, `MessagingProperties` |
+| **Configuration** | Cloud config and service discovery | `CloudConfigProperties`, `ServiceRegistryHelper` |
+| **Observability** | Metrics, tracing, and health checks | `ActuatorProperties`, `MessagingHealthIndicator` |
+| **Web** | Reactive web capabilities | `WebClientProperties`, `WebFluxConfig` |
+| **Integration** | CQRS and saga orchestration | `StepEventPublisherBridge`, `TransactionalEngineAutoConfiguration` |
+
+### Messaging Publishers
+
+| Publisher | Class | Configuration Prefix |
+|-----------|-------|---------------------|
+| Apache Kafka | `KafkaEventPublisher` | `messaging.kafka` |
+| RabbitMQ | `RabbitMqEventPublisher` | `messaging.rabbitmq` |
+| AWS SQS | `SqsEventPublisher` | `messaging.sqs` |
+| Google Pub/Sub | `GooglePubSubEventPublisher` | `messaging.google-pub-sub` |
+| Azure Service Bus | `AzureServiceBusEventPublisher` | `messaging.azure-service-bus` |
+| Redis Pub/Sub | `RedisEventPublisher` | `messaging.redis` |
+| JMS/ActiveMQ | `JmsEventPublisher` | `messaging.jms` |
+| AWS Kinesis | `KinesisEventPublisher` | `messaging.kinesis` |
+| Spring Events | `SpringEventPublisher` | Always available when messaging enabled |
+
+## 🛠️ Configuration
+
+### Messaging Configuration
+
 ```yaml
-firefly:
-  messaging:
+messaging:
+  enabled: true
+  resilience: true
+  publish-timeout-seconds: 5
+  default-connection-id: default
+  
+  # Kafka Configuration
+  kafka:
     enabled: true
-    kafka:
-      bootstrap-servers: localhost:9092
-    redis:
-      host: localhost
-      port: 6379
+    bootstrap-servers: localhost:9092
+    default-topic: events
+    client-id: my-service
+    security-protocol: PLAINTEXT
+    properties:
+      "batch.size": "16384"
+      "linger.ms": "5"
+  
+  # Multiple Kafka Connections
+  kafka-connections:
+    primary:
+      enabled: true
+      bootstrap-servers: kafka-primary:9092
+      default-topic: primary-events
+    secondary:
+      enabled: true
+      bootstrap-servers: kafka-secondary:9092
+      default-topic: secondary-events
+  
+  # RabbitMQ Configuration  
+  rabbitmq:
+    enabled: true
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    default-exchange: events
+    default-routing-key: default
+  
+  # AWS SQS Configuration
+  sqs:
+    enabled: true
+    region: us-east-1
+    default-queue: events
+    # Access keys can be configured via environment or IAM roles
+  
+  # Serialization Configuration
+  serialization:
+    default-format: JSON
+    formats:
+      json:
+        enabled: true
+        pretty-print: false
+      avro:
+        enabled: true
+        schema-registry-url: http://localhost:8081
+      protobuf:
+        enabled: true
 ```
 
-#### Logging Configuration
+### Step Events Integration
+
 ```yaml
-firefly:
-  logging:
-    structured: true
-    max-recursion-depth: 10
-    enable-metrics: true
+# Step Events Configuration (for Transactional Engine integration)
+step-events:
+  enabled: true
+  publisher-type: KAFKA
+  connection-id: default
+  event-destination: saga-events
+  include-step-context: true
+  
+# Transactional Engine Configuration  
+transactional-engine:
+  enabled: true
+  step-event-publisher: stepEventPublisherBridge
 ```
 
-#### Actuator Configuration
+### Cloud Configuration
+
+```yaml
+# Spring Cloud Config
+cloud:
+  config:
+    enabled: true
+    uri: http://config-server:8888
+    name: ${spring.application.name}
+    profile: ${spring.profiles.active:default}
+    label: main
+    fail-fast: true
+    retry:
+      enabled: true
+      max-attempts: 3
+
+# Service Registry (Eureka)
+service:
+  registry:
+    enabled: true
+    type: EUREKA
+    eureka:
+      service-url: http://eureka:8761/eureka/
+      register: true
+      fetch-registry: true
+      health-check-enabled: true
+      health-check-url-path: /actuator/health
+```
+
+### Actuator and Observability
+
 ```yaml
 management:
   endpoints:
     web:
       exposure:
-        include: health,metrics,info
+        include: "*"
+      base-path: /actuator
   endpoint:
     health:
       show-details: always
+      show-components: true
+    prometheus:
+      enabled: true
+  
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: 60s
+    tags:
+      service: ${spring.application.name}
+      environment: ${spring.profiles.active:default}
+  
+  tracing:
+    sampling:
+      probability: 0.1
+    zipkin:
+      endpoint: http://zipkin:9411/api/v2/spans
+
+# Custom Actuator Configuration
+actuator:
+  extended-metrics:
+    jvm:
+      enabled: true
+      memory: true
+      gc: true
+      threads: true
+    database:
+      enabled: true
+      connection-timeout: 5
+    application:
+      enabled: true
+      startup-phases: true
+      enhanced-info: true
 ```
 
-## Architecture
+### WebClient Configuration
 
-The library is organized into modular packages:
+```yaml
+webclient:
+  enabled: true
+  connect-timeout-ms: 5000
+  read-timeout-ms: 10000
+  write-timeout-ms: 10000
+  max-in-memory-size: 16777216
+  
+  connection-pool:
+    enabled: true
+    max-connections: 500
+    max-idle-time-ms: 30000
+  
+  http2:
+    enabled: true
+    max-concurrent-streams: 100
+```
 
-- **`com.firefly.common.core.config`**: Configuration management and auto-configuration
-  - 📖 [Detailed Configuration Documentation](src/main/java/com/firefly/common/core/config/README.md)
-- **`com.firefly.common.core.web`**: Web client and resilience components
-- **`com.firefly.common.core.actuator`**: Enhanced actuator endpoints and health checks
-  - 📖 [Detailed Actuator Documentation](src/main/java/com/firefly/common/core/actuator/README.md)
-- **`com.firefly.common.core.messaging`**: Comprehensive messaging framework
-  - 📖 [Detailed Messaging Documentation](src/main/java/com/firefly/common/core/messaging/README.md)
-- **`com.firefly.common.core.logging`**: Advanced logging utilities
-  - 📖 [Detailed Logging Documentation](src/main/java/com/firefly/common/core/logging/README.md)
+## 🔧 Advanced Features
 
-## Component Documentation
+### Multiple Messaging Connections
 
-For comprehensive guides and examples for each component:
+```java
+@RestController
+public class MultiConnectionController {
+    
+    @PostMapping("/primary-events")
+    @PublishResult(
+        publisherType = KAFKA,
+        connectionId = "primary",
+        destination = "primary-topic"
+    )
+    public Mono<Event> publishToPrimary(@RequestBody Event event) {
+        return Mono.just(event);
+    }
+    
+    @PostMapping("/secondary-events") 
+    @PublishResult(
+        publisherType = KAFKA,
+        connectionId = "secondary", 
+        destination = "secondary-topic"
+    )
+    public Mono<Event> publishToSecondary(@RequestBody Event event) {
+        return Mono.just(event);
+    }
+}
+```
 
-- **[🔧 Configuration Management](src/main/java/com/firefly/common/core/config/README.md)** - Cloud config, service discovery, and web configuration
-- **[📊 Actuator Components](src/main/java/com/firefly/common/core/actuator/README.md)** - Health indicators, metrics, and monitoring
-- **[📨 Messaging Framework](src/main/java/com/firefly/common/core/messaging/README.md)** - Multi-platform messaging with Kafka, AWS SQS, Azure Service Bus, and more
-- **[🔍 Logging Utilities](src/main/java/com/firefly/common/core/logging/README.md)** - Structured logging, MDC support, and performance optimization
+### Custom Serialization
 
-## Requirements
+```java
+@Component
+public class EventSerializationConfig {
+    
+    @Bean
+    public MessageSerializer customAvroSerializer() {
+        return new AvroSerializer("http://schema-registry:8081");
+    }
+    
+    @PostMapping("/avro-events")
+    @PublishResult(
+        publisherType = KAFKA,
+        destination = "avro-events",
+        serializer = "customAvroSerializer"
+    )
+    public Mono<AvroEvent> publishAvroEvent(@RequestBody AvroEvent event) {
+        return Mono.just(event);
+    }
+}
+```
 
-- **Java**: 17+
-- **Spring Boot**: 3.2.2
-- **Spring Framework**: 6.x
-- **Maven**: 3.6+
+### Circuit Breaker Integration
 
-## Optional Dependencies
+```java
+@Service
+public class ResilientMessagingService {
+    
+    @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000))
+    @CircuitBreaker(name = "messaging", fallbackMethod = "fallbackPublish")
+    @PublishResult(publisherType = KAFKA, destination = "resilient-events")
+    public Mono<String> publishWithResilience(@RequestBody String message) {
+        return Mono.just(message);
+    }
+    
+    public Mono<String> fallbackPublish(String message, Exception ex) {
+        log.warn("Publishing failed, using fallback: {}", ex.getMessage());
+        return Mono.just("FALLBACK_PROCESSED");
+    }
+}
+```
 
-The library includes optional support for:
-- Kafka messaging
-- Redis caching/messaging
-- AWS services (DynamoDB, SQS, Kinesis, CloudWatch)
-- Google Cloud Pub/Sub
-- Azure Service Bus
-- Prometheus metrics
-- Zipkin tracing
+### Service Discovery Integration
 
-Enable these by including the appropriate dependencies and configuration.
+```java
+@Service
+public class ServiceIntegration {
+    
+    private final ServiceRegistryHelper serviceRegistry;
+    private final WebClient.Builder webClientBuilder;
+    
+    public Mono<String> callDownstreamService(String serviceId, String path) {
+        return Mono.fromCallable(() -> serviceRegistry.getServiceUri(serviceId))
+            .flatMap(uri -> webClientBuilder.build()
+                .get()
+                .uri(uri.resolve(path))
+                .retrieve()
+                .bodyToMono(String.class));
+    }
+}
+```
 
-## Contributing
+## 📊 Monitoring and Observability
 
-This library is maintained by the **Firefly Team** at [firefly-oss](https://github.com/firefly-oss). Please follow the established coding standards and ensure comprehensive test coverage for any changes.
+### Available Metrics
 
-### Development
-- **GitHub Organization**: [firefly-oss](https://github.com/firefly-oss)
-- **Team**: Firefly Team
-- **Package Structure**: The library uses `com.firefly.*` package naming for historical reasons, but the project is part of the Firefly ecosystem.
+| Metric Category | Description | Examples |
+|-----------------|-------------|----------|
+| **Messaging** | Publisher success/failure rates, latency | `messaging.publish.timer`, `messaging.publish.counter` |
+| **HTTP Client** | Request metrics, connection pool stats | `http.client.requests`, `reactor.netty.connection.provider` |
+| **JVM** | Memory, GC, threads, class loading | `jvm.memory.used`, `jvm.gc.pause` |
+| **Application** | Custom business metrics | `application.startup.phase`, `application.feature.usage` |
 
-## License
+### Health Checks
 
-Copyright © 2024 Firefly Team. All rights reserved.
+- **Messaging**: Connectivity to all enabled messaging systems
+- **Service Registry**: Connection to Eureka/Consul
+- **Database**: Connection pool health (if applicable)
+- **Disk Space**: Available storage monitoring
+- **Custom**: Application-specific health indicators
 
-## Version
+### Distributed Tracing
 
-Current version: **1.0.0-SNAPSHOT**
+Automatic trace propagation for:
+- HTTP requests (WebClient/WebFlux)
+- Messaging operations
+- Database operations (when using Spring Data)
+- Inter-service calls
 
-Built with Spring Boot 3.2.2 and modern reactive programming patterns for enterprise microservices architecture.
+## 🧪 Testing
+
+### Test Configuration
+
+```yaml
+# application-test.yml
+messaging:
+  enabled: true
+  kafka:
+    enabled: true
+    bootstrap-servers: ${spring.embedded.kafka.brokers}
+  
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+```
+
+### Integration Tests
+
+```java
+@SpringBootTest
+@EmbeddedKafka(partitions = 1, topics = {"test-events"})
+class MessagingIntegrationTest {
+    
+    @Autowired
+    private EventPublisher eventPublisher;
+    
+    @Test
+    void shouldPublishAndConsumeMessages() {
+        StepVerifier.create(
+            eventPublisher.publish("test-events", "test.event", "test-payload", "tx-123")
+        ).verifyComplete();
+        
+        // Verify message was consumed
+        // ... assertion logic
+    }
+}
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+### Development Setup
+
+```bash
+# Clone repository
+git clone https://github.com/firefly-oss/lib-common-core.git
+cd lib-common-core
+
+# Build and test
+./mvnw clean test
+
+# Generate documentation
+./mvnw javadoc:javadoc
+
+# Run integration tests
+./mvnw verify -Pintegration-tests
+```
+
+## 📄 License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+## 🔗 Related Projects
+
+- [lib-common-cqrs](../lib-common-cqrs/) - CQRS patterns and event sourcing
+- [lib-transactional-engine](../lib-transactional-engine/) - Transaction orchestration
+- [lib-common-domain](../lib-common-domain/) - Domain layer utilities
+
+## 📄 License
+
+Copyright 2025 Firefly Software Solutions Inc
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
