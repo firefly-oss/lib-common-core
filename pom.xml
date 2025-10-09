@@ -75,6 +75,13 @@
             </exclusions>
         </dependency>
 
+        <!-- lib-common-eda for event-driven architecture support -->
+        <dependency>
+            <groupId>com.firefly</groupId>
+            <artifactId>lib-common-eda</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
         <!-- Reactor Test -->
         <dependency>
             <groupId>io.projectreactor</groupId>
