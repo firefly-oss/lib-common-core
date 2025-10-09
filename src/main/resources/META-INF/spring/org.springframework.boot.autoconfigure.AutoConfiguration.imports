@@ -14,3 +14,5 @@ com.firefly.common.core.config.cloud.CloudConfigProperties
 com.firefly.common.core.config.cloud.CloudConfigAutoConfiguration
 com.firefly.common.core.config.registry.ServiceRegistryProperties
 com.firefly.common.core.config.registry.ServiceRegistryAutoConfiguration
+com.firefly.common.core.messaging.config.StepEventsAutoConfiguration
+com.firefly.common.core.messaging.config.TransactionalEngineAutoConfiguration
